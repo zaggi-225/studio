@@ -173,32 +173,3 @@ export function DataTable<TData, TValue>({
     </div>
   )
 }
-
-// Add these new components for faceted filtering and view options
-
-const DataTableFacetedFilter = <TData, TValue>({
-    column,
-    title,
-    options,
-  }: {
-    column: any
-    title: string
-    options: { label: string; value: string; icon?: React.ComponentType<{ className?: string }> }[]
-  }) => {
-    const facets = column?.getFacetedUniqueValues()
-    const selectedValues = new Set(column?.getFilterValue() as string[])
-  
-    return (
-        <div></div> // This component is not fully implemented in this diff for brevity.
-    )
-  }
-  
-  const DataTableViewOptions = <TData,>({
-    table,
-  }: {
-    table: any
-  }) => {
-    return (
-        <div></div> // This component is not fully implemented in this diff for brevity.
-    )
-  }
