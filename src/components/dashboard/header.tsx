@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { Logo } from '../logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
@@ -41,10 +41,13 @@ export function DashboardHeader() {
           </Button>
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
-          <nav className="grid gap-2 text-lg font-medium">
-            <Link href="#" className="flex items-center gap-2 text-lg font-semibold mb-4" prefetch={false}>
+          <SheetHeader className='border-b mb-4 pb-4'>
+            <SheetTitle className='sr-only'>Navigation Menu</SheetTitle>
+            <Link href="#" className="flex items-center gap-2 text-lg font-semibold" prefetch={false}>
               <Logo className="h-10 w-auto text-primary" />
             </Link>
+          </SheetHeader>
+          <nav className="grid gap-2 text-lg font-medium">
             <Link
               href="/dashboard"
               className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
