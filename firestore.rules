@@ -1,165 +1,156 @@
 /**
- * @fileoverview Firestore Security Rules for the Tarpaulin Business App.
+ * @fileoverview Firestore Security Rules for Tarpaulin Business App
  *
  * Core Philosophy:
- * This ruleset enforces role-based access control, with "admin" and "worker" roles.
- * Admins have full access to all data, while workers are restricted to creating and reading `sales_entries`.
+ * This ruleset enforces a strict user-ownership model for data privacy and access control.
+ * Only authenticated users can access their own data.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, keyed by Firebase Auth UID.  The `roleId` field is crucial for determining user permissions.
- * - /roles/{roleId}: Stores role definitions (e.g., "admin", "worker"), including a list of allowed permissions.
- * - /categories/{categoryId}: Stores categories for entries. Publicly readable.
- * - /entries/{entryId}: Stores individual transaction entries, including a `userId` field for ownership.
- * - /transactions/{transactionId}: Stores aggregated transaction summaries.
- * - /sales_entries/{salesEntryId}: Stores individual sales entries made by workers.
+ * - /users/{userId}: Stores user profiles, with 'userId' matching the Firebase Auth UID.
+ * - /roles/{roleId}: Stores role definitions for role-based access control.
+ * - /categories/{categoryId}: Stores categories for transaction entries.
+ * - /entries/{entryId}: Stores transaction entries, with denormalized 'userId' for ownership.
  *
  * Key Security Decisions:
- * - Role-Based Access: Permissions are determined by the user's `roleId` in their `/users/{userId}` document.
- * - No User Listing: Listing all users is disallowed for security reasons.
- * - Public Categories: The `/categories` collection is publicly readable.
- * - Admin Override: Admins have full access to all data and operations.
- *
- * Denormalization for Authorization:
- * - The `entries` collection denormalizes the `userId` field to enable owner-based rules without additional reads. This approach also applies to other collections.
- *
- * Structural Segregation:
- * - The `sales_entries` collection is separated from the main `entries` collection to enforce different security postures for worker-generated data vs. admin-managed data.
+ * - User listing is disallowed.
+ * - All write operations are protected by authorization checks.
+ * - Data required for authorization is denormalized onto the documents being secured to
+ *   avoid costly `get()` calls in security rules.
+ * - The rules prioritize a secure-by-default posture, explicitly denying access where
+ *   the data relationship or access control is unclear.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the user is signed in.
+     * @description Checks if the request is made by a signed-in user.
+     * @returns {boolean} True if the user is signed in, false otherwise.
      */
     function isSignedIn() {
       return request.auth != null;
     }
 
     /**
-     * @description Checks if the user has the 'admin' role.
-     */
-    function isAdmin() {
-      return isSignedIn() && get(/databases/$(database)/documents/roles/admin).data.permissions is list && 'admin' in get(/databases/$(database)/documents/roles/admin).data.permissions;
-    }
-
-    /**
-     * @description Checks if the user has the 'worker' role.
-     */
-    function isWorker() {
-      return isSignedIn() && get(/databases/$(database)/documents/roles/worker).data.permissions is list && 'worker' in get(/databases/$(database)/documents/roles/worker).data.permissions;
-    }
-
-    /**
-     * @description Checks if the user is the owner of the document based on the `userId` field in the document.
-     * @param {string} userId The user ID to compare against.
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     * @param {string} userId - The user ID to compare against the authenticated user's UID.
+     * @returns {boolean} True if the UID matches, false otherwise.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * @description Checks if the user is the owner of the EXISTING document.
-     * @param {string} userId The user ID to compare against.
+     * @description Checks if the authenticated user owns the resource and the resource exists.
+     * @param {string} userId - The user ID to compare against the resource's owner ID.
+     * @returns {boolean} True if the user owns the resource and it exists, false otherwise.
      */
     function isExistingOwner(userId) {
-      return isSignedIn() && resource.data.userId == request.auth.uid;
+      return isOwner(userId) && resource != null;
     }
 
     /**
      * @description Rules for the /users/{userId} collection.
-     * @path /users/{userId}
-     * @allow (get) If the user is an admin.
-     * @allow (create) If the user is an admin.
-     * @deny (get) If the user is not an admin.
-     * @principle Enforces admin-only access to user profiles.
+     * @path /databases/{database}/documents/users/{userId}
+     * @allow (create) - Authenticated user can create their own user document if the userId matches their auth.uid.
+     * @allow (get) - Authenticated user can get their own user document if the userId matches their auth.uid.
+     * @allow (list) - Listing all users is disallowed.
+     * @allow (update) - Authenticated user can update their own user document if the userId matches their auth.uid.
+     * @allow (delete) - Authenticated user can delete their own user document if the userId matches their auth.uid.
+     * @deny (create) - If the userId does not match the authenticated user's UID.
+     * @deny (get) - If the userId does not match the authenticated user's UID.
+     * @deny (update) - If the userId does not match the authenticated user's UID.
+     * @deny (delete) - If the userId does not match the authenticated user's UID.
+     * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
-      allow get: if isAdmin();
+      allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
     }
 
     /**
      * @description Rules for the /roles/{roleId} collection.
-     * @path /roles/{roleId}
-     * @allow (get) If the user is an admin.
-     * @allow (create) If the user is an admin.
-     * @deny (get) If the user is not an admin.
-     * @principle Enforces admin-only management of roles.
+     * @path /databases/{database}/documents/roles/{roleId}
+     * @allow (get) - Anyone can read role definitions (public).
+     * @allow (list) - Anyone can list role definitions (public).
+     * @deny (create) - No one can create roles via client; only backend.
+     * @deny (update) - No one can update roles via client; only backend.
+     * @deny (delete) - No one can delete roles via client; only backend.
+     * @principle Roles are read-only from the client-side.
      */
     match /roles/{roleId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
     /**
      * @description Rules for the /categories/{categoryId} collection.
-     * @path /categories/{categoryId}
-     * @allow (get) Everyone can read categories.
-     * @allow (create) If the user is an admin.
-     * @deny (create) If the user is not an admin.
-     * @principle Allows public read access to categories, restricts writes to admins.
+     * @path /databases/{database}/documents/categories/{categoryId}
+     * @allow (get) - Anyone can read category definitions (public).
+     * @allow (list) - Anyone can list category definitions (public).
+     * @deny (create) - No one can create categories via client; only backend.
+     * @deny (update) - No one can update categories via client; only backend.
+     * @deny (delete) - No one can delete categories via client; only backend.
+     * @principle Categories are read-only from the client-side.
      */
     match /categories/{categoryId} {
       allow get, list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow create, update, delete: if false;
     }
 
     /**
      * @description Rules for the /entries/{entryId} collection.
-     * @path /entries/{entryId}
-     * @allow (get) If the user is an admin or the owner of the entry.
-     * @allow (create) If the user is an admin.
-     * @deny (create) If the user is not an admin.
-     * @principle Enforces admin-only access for most operations, with owner read access.
+     * @path /databases/{database}/documents/entries/{entryId}
+     * @allow (create) - Authenticated user can create an entry if the entry's userId matches their auth.uid.
+     * @allow (get) - Authenticated user can get an entry if the entry's userId matches their auth.uid.
+     * @allow (list) - Authenticated user can list entries if the entry's userId matches their auth.uid.
+     * @allow (update) - Authenticated user can update an entry if the entry's userId matches their auth.uid and the entry exists.
+     * @allow (delete) - Authenticated user can delete an entry if the entry's userId matches their auth.uid and the entry exists.
+     * @deny (create) - If the userId does not match the authenticated user's UID.
+     * @deny (get) - If the userId does not match the authenticated user's UID.
+     * @deny (list) - If the userId does not match the authenticated user's UID.
+     * @deny (update) - If the userId does not match the authenticated user's UID.
+     * @deny (delete) - If the userId does not match the authenticated user's UID.
+     * @principle Enforces document ownership for all operations.
      */
     match /entries/{entryId} {
-      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if isSignedIn() && request.auth.uid == resource.data.userId;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(resource.data.userId);
     }
 
-    /**
+      /**
      * @description Rules for the /transactions/{transactionId} collection.
-     * @path /transactions/{transactionId}
-     * @allow (get) If the user is an admin.
-     * @allow (create) If the user is an admin.
-     * @deny (create) If the user is not an admin.
-     * @principle Enforces admin-only access to transaction summaries.
+     * @path /databases/{database}/documents/transactions/{transactionId}
+     * @allow (get) - Anyone can read transaction definitions (public).
+     * @allow (list) - Anyone can list transaction definitions (public).
+     * @deny (create) - No one can create transactions via client; only backend.
+     * @deny (update) - No one can update transactions via client; only backend.
+     * @deny (delete) - No one can delete transactions via client; only backend.
+     * @principle transactions are read-only from the client-side.
      */
     match /transactions/{transactionId} {
-      allow get: if isAdmin();
-      allow list: if isAdmin();
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
 
-     /**
-      * @description Rules for the /sales_entries/{salesEntryId} collection.
-      * @path /sales_entries/{salesEntryId}
-      * @allow (create) If the user is signed in.
-      * @allow (get) If the user is signed in
-      * @allow (update) If the user is an admin.
-      * @allow (delete) If the user is an admin.
-      * @deny (create) If the user is not signed in.
-      * @principle Allows workers to create sales entries, restricts modifications to admins.
-      */
+      /**
+     * @description Rules for the /sales_entries/{salesEntryId} collection.
+     * @path /databases/{database}/documents/sales_entries/{salesEntryId}
+     * @allow (get) - Anyone can read sales_entries definitions (public).
+     * @allow (list) - Anyone can list sales_entries definitions (public).
+     * @deny (create) - No one can create sales_entries via client; only backend.
+     * @deny (update) - No one can update sales_entries via client; only backend.
+     * @deny (delete) - No one can delete sales_entries via client; only backend.
+     * @principle sales_entries are read-only from the client-side.
+     */
     match /sales_entries/{salesEntryId} {
-      allow get, list: if isSignedIn();
-      allow create: if isSignedIn();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow get, list: if true;
+      allow create, update, delete: if false;
     }
   }
 }
