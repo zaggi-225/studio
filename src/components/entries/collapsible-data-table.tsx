@@ -267,7 +267,7 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
           </TableBody>
            <TableFooter>
                 <TableRow>
-                    <TableCell colSpan={columns.findIndex(c => c.accessorKey === 'pieces') + 1} className="text-right font-bold">Total</TableCell>
+                    <TableCell colSpan={columns.findIndex(c => c.accessorKey === 'pieces') + 2} className="text-right font-bold">Total</TableCell>
                     <TableCell className="text-right font-bold">{totalPieces}</TableCell>
                     <TableCell className="text-right font-bold">
                         {new Intl.NumberFormat('en-IN', {
@@ -329,7 +329,7 @@ const DateGroupRow = ({
 
   return (
     <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
-        <React.Fragment>
+        <>
           <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
             <TableCell>
               <CollapsibleTrigger asChild>
@@ -350,6 +350,7 @@ const DateGroupRow = ({
           </TableRow>
 
           <CollapsibleContent asChild>
+            <>
               {subTable.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="bg-muted/50">
                    <TableCell></TableCell>
@@ -360,8 +361,9 @@ const DateGroupRow = ({
                   ))}
                 </TableRow>
               ))}
+            </>
           </CollapsibleContent>
-        </React.Fragment>
+        </>
       </Collapsible>
   );
 };
