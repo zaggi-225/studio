@@ -16,14 +16,14 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { isToday } from 'date-fns';
+import { isToday, startOfDay, endOfDay, format } from 'date-fns';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableFacetedFilter } from '@/components/entries/data-table-faceted-filter';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, setDoc, doc, Timestamp, startOfDay, endOfDay } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc, Timestamp } from 'firebase/firestore';
 import type { SalesEntry, Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -31,7 +31,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
 import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import type { DateRange } from 'react-day-picker';
-import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -193,7 +192,7 @@ export function SalesEntriesTable() {
         .join(', ');
 
       const dailySummary: Omit<Transaction, 'id'> = {
-        date: Timestamp.fromDate(startOfToday),
+        date: Timestamp.fromDate(startOfToday).toDate().toISOString(),
         type: 'sale',
         description: description,
         category: 'Customer',
@@ -389,3 +388,7 @@ export function SalesEntriesTable() {
     </Card>
   );
 }
+
+    
+
+    
