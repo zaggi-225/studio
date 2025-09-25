@@ -1,9 +1,29 @@
-import { mockTransactions } from '@/lib/data';
+'use client';
+import { useMemo } from 'react';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/lib/types';
 import { columns } from '@/components/entries/columns';
 import { DataTable } from '@/components/entries/data-table';
 import { AddEntrySheet } from '@/components/entries/add-entry-sheet';
 
 export default function EntriesPage() {
+  const { firestore } = useFirebase();
+  const transactionsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'transactions') : null),
+    [firestore]
+  );
+  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsRef);
+
+  const tableData = useMemo(() => {
+    if (!transactions) return [];
+    return transactions.map(t => ({
+      ...t,
+      date: (t.date as any)?.toDate ? (t.date as any).toDate().toISOString() : t.date,
+    }));
+  }, [transactions]);
+
+
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
@@ -15,7 +35,7 @@ export default function EntriesPage() {
         </div>
         <AddEntrySheet />
       </div>
-      <DataTable columns={columns} data={mockTransactions} />
+      <DataTable columns={columns} data={isLoading ? [] : tableData} />
     </div>
   );
 }

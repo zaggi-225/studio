@@ -16,22 +16,24 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
-import { isToday, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
+import { isToday } from 'date-fns';
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableFacetedFilter } from '@/components/entries/data-table-faceted-filter';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-import type { SalesEntry } from '@/lib/types';
+import { collection, query, where, getDocs, setDoc, doc, Timestamp, startOfDay, endOfDay } from 'firebase/firestore';
+import type { SalesEntry, Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
-import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import type { DateRange } from 'react-day-picker';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 const columns: ColumnDef<SalesEntry>[] = [
@@ -86,6 +88,9 @@ const BRANCHES = [
 
 export function SalesEntriesTable() {
   const { firestore } = useFirebase();
+  const { toast } = useToast();
+  const [isSyncing, setIsSyncing] = React.useState(false);
+
   const salesEntriesRef = useMemoFirebase(() => firestore ? collection(firestore, 'sales_entries') : null, [firestore]);
   const { data: salesEntries, isLoading } = useCollection<SalesEntry>(salesEntriesRef);
 
@@ -102,14 +107,17 @@ export function SalesEntriesTable() {
     
     let filteredEntries = salesEntries.map(entry => ({
       ...entry,
-      date: (entry.date as any)?.toDate ? (entry.date as any).toDate() : entry.date,
+      date: (entry.date as any)?.toDate ? (entry.date as any).toDate() : new Date(entry.date),
     }));
 
-    if (date?.from && date?.to) {
-        filteredEntries = filteredEntries.filter(entry => {
-            const entryDate = new Date(entry.date);
-            return entryDate >= date.from! && entryDate <= date.to!;
-        });
+    if (date?.from) {
+      if (!date.to) date.to = date.from;
+      const from = startOfDay(date.from);
+      const to = endOfDay(date.to);
+      filteredEntries = filteredEntries.filter(entry => {
+          const entryDate = new Date(entry.date);
+          return entryDate >= from && entryDate <= to;
+      });
     }
 
     return filteredEntries;
@@ -148,12 +156,86 @@ export function SalesEntriesTable() {
   const totalAmount = React.useMemo(() => {
     return table.getFilteredRowModel().rows.reduce((total, row) => total + (row.original.amount || 0), 0);
   }, [table.getFilteredRowModel().rows]);
+  
+  const handleManualSync = async () => {
+    if (!firestore) return;
+    setIsSyncing(true);
+
+    const today = new Date();
+    const startOfToday = startOfDay(today);
+    const endOfToday = endOfDay(today);
+
+    const q = query(
+      collection(firestore, 'sales_entries'),
+      where('date', '>=', startOfToday),
+      where('date', '<=', endOfToday)
+    );
+
+    try {
+      const querySnapshot = await getDocs(q);
+      const todaysEntries = querySnapshot.docs.map(doc => doc.data() as SalesEntry);
+
+      if (todaysEntries.length === 0) {
+        toast({ title: 'No sales today to sync.', variant: 'default' });
+        setIsSyncing(false);
+        return;
+      }
+
+      const totalAmount = todaysEntries.reduce((sum, entry) => sum + entry.amount, 0);
+      const sizeCounts = todaysEntries.reduce((acc, entry) => {
+        const size = entry.size || 'N/A';
+        acc[size] = (acc[size] || 0) + entry.pieces;
+        return acc;
+      }, {} as { [key: string]: number });
+
+      const description = Object.entries(sizeCounts)
+        .map(([size, count]) => `${size} = ${count}`)
+        .join(', ');
+
+      const dailySummary: Omit<Transaction, 'id'> = {
+        date: Timestamp.fromDate(startOfToday),
+        type: 'sale',
+        description: description,
+        category: 'Customer',
+        amount: totalAmount,
+      };
+
+      const docId = format(today, 'yyyy-MM-dd');
+      const docRef = doc(firestore, 'transactions', docId);
+
+      setDocumentNonBlocking(docRef, dailySummary, { merge: true });
+      
+      toast({
+        title: '✅ Sales Synced',
+        description: 'Today\'s sales data synced to All Entries successfully.',
+      });
+
+    } catch (error) {
+      console.error("Error during manual sync:", error);
+      toast({
+        title: 'Sync Failed',
+        description: 'Could not sync sales data. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Past Sales Entries</CardTitle>
-        <CardDescription>A record of all sales submitted.</CardDescription>
+        <div className="flex justify-between items-center">
+            <div>
+                <CardTitle>Past Sales Entries</CardTitle>
+                <CardDescription>A record of all sales submitted.</CardDescription>
+            </div>
+            <Button onClick={handleManualSync} disabled={isSyncing}>
+                <RefreshCw className={cn("mr-2 h-4 w-4", isSyncing && "animate-spin")} />
+                {isSyncing ? 'Syncing...' : 'Sync Today\'s Sales'}
+            </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-2 flex-wrap">
@@ -177,7 +259,7 @@ export function SalesEntriesTable() {
                   id="date"
                   variant={'outline'}
                   className={cn(
-                    'w-[300px] justify-start text-left font-normal',
+                    'w-full md:w-[300px] justify-start text-left font-normal',
                     !date && 'text-muted-foreground'
                   )}
                 >
