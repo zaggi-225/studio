@@ -50,6 +50,10 @@ export const columns: ColumnDef<Transaction>[] = [
     }
   },
   {
+    accessorKey: 'name',
+    header: 'Name',
+  },
+  {
     accessorKey: 'type',
     header: 'Type',
     cell: ({ row }) => {

@@ -36,6 +36,7 @@ const formSchema = z.object({
     required_error: 'A date is required.',
   }).max(new Date(), { message: "Date cannot be in the future." }),
   type: z.enum(['sale', 'purchase', 'expense'], { required_error: 'Type is required.' }),
+  name: z.string({ required_error: 'Name is required.' }),
   amount: z.coerce.number().min(0.01, 'Amount is required.'),
   category: z.string().min(1, 'Category is required.'),
   description: z.string().min(1, 'Description is required.'),
@@ -52,6 +53,7 @@ export function AddEntrySheet() {
       date: new Date(),
       amount: 0,
       type: undefined,
+      name: undefined,
       category: '',
       description: '',
     },
@@ -63,15 +65,16 @@ export function AddEntrySheet() {
       return;
     }
 
-    const docId = dateFnsFormat(values.date, 'yyyy-MM-dd');
-    const docRef = doc(firestore, 'transactions', docId);
+    // Use a unique ID for each transaction instead of overwriting by date
+    const newDocRef = doc(collection(firestore, 'transactions'));
 
     const transactionData = {
       ...values,
+      id: newDocRef.id,
       date: Timestamp.fromDate(values.date).toDate().toISOString(),
     };
 
-    setDocumentNonBlocking(docRef, transactionData, { merge: true });
+    setDocumentNonBlocking(newDocRef, transactionData, {});
     
     toast({
       title: '✅ Transaction Saved',
@@ -82,6 +85,7 @@ export function AddEntrySheet() {
       date: new Date(),
       amount: 0,
       type: undefined,
+      name: undefined,
       category: '',
       description: '',
     });
@@ -95,7 +99,7 @@ export function AddEntrySheet() {
           Add Transaction
         </Button>
       </SheetTrigger>
-      <SheetContent className="sm:max-w-lg">
+      <SheetContent className="sm:max-w-lg overflow-y-auto">
         <SheetHeader>
           <SheetTitle>Add New Transaction</SheetTitle>
           <SheetDescription>
@@ -155,6 +159,28 @@ export function AddEntrySheet() {
                       <SelectItem value="sale">💰 Sale</SelectItem>
                       <SelectItem value="purchase">🛒 Purchase</SelectItem>
                       <SelectItem value="expense">💸 Expense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a name" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="M.R Bijapur">M.R Bijapur</SelectItem>
+                      <SelectItem value="Jaggu">Jaggu</SelectItem>
+                      <SelectItem value="Pavitra">Pavitra</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

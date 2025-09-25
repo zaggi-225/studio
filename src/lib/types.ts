@@ -6,6 +6,7 @@ export type Transaction = {
   amount: number;
   description: string;
   category: string;
+  name?: string;
 };
 
 export type SalesEntry = {

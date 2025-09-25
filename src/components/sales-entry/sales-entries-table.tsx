@@ -197,6 +197,7 @@ export function SalesEntriesTable() {
         description: description,
         category: 'Customer',
         amount: totalAmount,
+        name: 'Aggregated Sales',
       };
 
       const docId = format(today, 'yyyy-MM-dd');
@@ -388,7 +389,3 @@ export function SalesEntriesTable() {
     </Card>
   );
 }
-
-    
-
-    
