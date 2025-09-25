@@ -3,14 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  Bell,
   Home,
-  LineChart,
-  Package,
-  Settings,
   ShoppingCart,
-  Users,
   FileText,
+  Settings,
   PlusSquare,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -18,17 +14,22 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Logo } from '../logo';
+import { useRole } from '@/hooks/use-role';
 
-const navItems = [
-  { href: '/dashboard', icon: Home, label: 'Dashboard' },
-  { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry' },
-  { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', badge: '50' },
-  { href: '/dashboard/reports', icon: FileText, label: 'Reports' },
-  { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
+
+const allNavItems = [
+  { href: '/dashboard', icon: Home, label: 'Dashboard', adminOnly: true },
+  { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry', adminOnly: false },
+  { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', adminOnly: true },
+  { href: '/dashboard/reports', icon: FileText, label: 'Reports', adminOnly: true },
+  { href: '/dashboard/settings', icon: Settings, label: 'Settings', adminOnly: true },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
+  const { isAdmin } = useRole();
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
 
   return (
     <div className="hidden border-r bg-background md:block">
@@ -40,7 +41,7 @@ export function DashboardSidebar() {
         </div>
         <div className="flex-1">
           <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-            {navItems.map(({ href, icon: Icon, label, badge }) => (
+            {navItems.map(({ href, icon: Icon, label, adminOnly }) => (
               <Link
                 key={href}
                 href={href}
@@ -52,11 +53,6 @@ export function DashboardSidebar() {
               >
                 <Icon className="h-4 w-4" />
                 {label}
-                {badge && (
-                  <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">
-                    {badge}
-                  </Badge>
-                )}
               </Link>
             ))}
           </nav>

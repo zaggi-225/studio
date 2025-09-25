@@ -8,25 +8,43 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar as CalendarIcon, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { mockTransactions } from '@/lib/data';
 import type { DateRange } from 'react-day-picker';
+import { useRole } from '@/hooks/use-role';
+import { NotAuthorized } from '@/components/not-authorized';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/lib/types';
+
 
 export default function ReportsPage() {
+  const { firestore } = useFirebase();
+  const { isAdmin, isLoading: isRoleLoading } = useRole();
+
+  const transactionsRef = useMemoFirebase(
+    () => (firestore && isAdmin ? collection(firestore, 'transactions') : null),
+    [firestore, isAdmin]
+  );
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection<Transaction>(transactionsRef);
+
+
   const [date, setDate] = useState<DateRange | undefined>({
     from: new Date(new Date().setMonth(new Date().getMonth() - 1)),
     to: new Date(),
   });
 
   const handleExport = () => {
-    const headers = ['ID', 'Date', 'Type', 'Description', 'Category', 'Amount'];
-    const filteredData = mockTransactions.filter(t => {
+    if (!transactions) return;
+
+    const headers = ['ID', 'Date', 'Type', 'Description', 'Category', 'Amount', 'Name', 'Branch', 'Pieces'];
+    const filteredData = transactions.filter(t => {
         const tDate = new Date(t.date);
         return date?.from && date?.to && tDate >= date.from && tDate <= date.to;
     });
 
     const csvContent = [
       headers.join(','),
-      ...filteredData.map(t => [t.id, t.date, t.type, `"${t.description}"`, t.category, t.amount].join(','))
+      ...filteredData.map(t => [t.id, t.date, t.type, `"${t.description}"`, t.category, t.amount, t.name, t.branch, t.pieces].join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -41,6 +59,26 @@ export default function ReportsPage() {
     link.click();
     document.body.removeChild(link);
   };
+  
+  const isLoading = isRoleLoading || isTransactionsLoading;
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto py-10">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <Skeleton className="h-9 w-48 mb-2" />
+            <Skeleton className="h-5 w-72" />
+          </div>
+        </div>
+        <Skeleton className="h-48 w-full" />
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return <NotAuthorized />;
+  }
 
 
   return (

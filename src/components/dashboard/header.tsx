@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Search, User } from 'lucide-react';
+import { Menu, Search, User, Home, PlusSquare, ShoppingCart, FileText, Settings } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,11 +19,29 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ThemeToggle } from '../theme-toggle';
 import { useAuth } from '@/firebase';
 import { useRouter } from 'next/navigation';
+import { useRole } from '@/hooks/use-role';
+import { cn } from '@/lib/utils';
+import { usePathname } from 'next/navigation';
+
+
+const allNavItems = [
+  { href: '/dashboard', icon: Home, label: 'Dashboard', adminOnly: true },
+  { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry', adminOnly: false },
+  { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', adminOnly: true },
+  { href: '/dashboard/reports', icon: FileText, label: 'Reports', adminOnly: true },
+  { href: '/dashboard/settings', icon: Settings, label: 'Settings', adminOnly: true },
+];
+
 
 export function DashboardHeader() {
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
   const auth = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const { isAdmin } = useRole();
+
+  const navItems = allNavItems.filter(item => !item.adminOnly || isAdmin);
+
 
   const handleLogout = () => {
     auth.signOut().then(() => {
@@ -49,56 +67,36 @@ export function DashboardHeader() {
             </SheetTitle>
           </SheetHeader>
           <nav className="grid gap-2 text-lg font-medium">
-            <Link
-              href="/dashboard"
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-              prefetch={false}
-            >
-              Dashboard
-            </Link>
-             <Link
-              href="/dashboard/sales-entry"
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-              prefetch={false}
-            >
-              Sales Entry
-            </Link>
-            <Link
-              href="/dashboard/entries"
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
-              prefetch={false}
-            >
-              All Entries
-            </Link>
-            <Link
-              href="/dashboard/reports"
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-              prefetch={false}
-            >
-              Reports
-            </Link>
-            <Link
-              href="/dashboard/settings"
-              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-              prefetch={false}
-            >
-              Settings
-            </Link>
+            {navItems.map(({ href, icon: Icon, label }) => (
+               <Link
+                key={href}
+                href={href}
+                className={cn("mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground", {
+                    'bg-muted text-foreground': pathname === href
+                })}
+                prefetch={false}
+              >
+                <Icon className='h-5 w-5'/>
+                {label}
+              </Link>
+            ))}
           </nav>
         </SheetContent>
       </Sheet>
 
       <div className="w-full flex-1">
-        <form>
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="Search transactions..."
-              className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-            />
-          </div>
-        </form>
+        {isAdmin && (
+            <form>
+            <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="Search transactions..."
+                className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+                />
+            </div>
+            </form>
+        )}
       </div>
 
       <ThemeToggle />
@@ -118,7 +116,7 @@ export function DashboardHeader() {
         <DropdownMenuContent align="end">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={handleLogout}>
