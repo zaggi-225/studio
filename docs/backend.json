@@ -1,18 +1,99 @@
 {
   "entities": {
+    "Entry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Entry",
+      "type": "object",
+      "description": "Represents a single transaction entry (purchase, sale, or expense).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the entry."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of entry (purchase, sale, or expense).",
+          "format": "string"
+        },
+        "quantity": {
+          "type": "number",
+          "description": "The quantity of items in the entry."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price per item or the total value of the expense."
+        },
+        "supplier": {
+          "type": "string",
+          "description": "The name of the supplier (if applicable)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "The timestamp of when the entry was created.",
+          "format": "date-time"
+        },
+        "synced": {
+          "type": "boolean",
+          "description": "Indicates whether the entry has been synchronized with Firestore."
+        },
+        "categoryId": {
+          "type": "string",
+          "description": "Reference to Category. (Relationship: Category 1:N Entry)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Entry)"
+        }
+      },
+      "required": [
+        "id",
+        "type",
+        "quantity",
+        "price",
+        "timestamp",
+        "synced",
+        "categoryId",
+        "userId"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a category for entries (e.g., raw materials, transportation).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the category."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category."
+        },
+        "emoji": {
+          "type": "string",
+          "description": "Emoji associated with the category for visual representation."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "emoji"
+      ]
+    },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the Tarpaulin Manager app.",
+      "description": "Represents a user of the application.",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the user entity."
+          "description": "Unique identifier for the user."
         },
         "email": {
           "type": "string",
-          "description": "Email address of the user.",
+          "description": "The user's email address.",
           "format": "email"
         },
         "roleId": {
@@ -30,19 +111,19 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Role",
       "type": "object",
-      "description": "Represents the role of a user (Admin or Worker).",
+      "description": "Represents a role within the application (e.g., Admin, Worker).",
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the role entity."
+          "description": "Unique identifier for the role."
         },
         "name": {
           "type": "string",
-          "description": "Name of the role (e.g., 'Admin', 'Worker')."
+          "description": "The name of the role."
         },
         "permissions": {
           "type": "array",
-          "description": "List of permissions associated with the role.",
+          "description": "List of permissions granted to the role",
           "items": {
             "type": "string"
           }
@@ -50,150 +131,7 @@
       },
       "required": [
         "id",
-        "name",
-        "permissions"
-      ]
-    },
-    "Entry": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Entry",
-      "type": "object",
-      "description": "Represents a purchase, sale, or expense entry.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the entry entity."
-        },
-        "type": {
-          "type": "string",
-          "description": "Type of entry (purchase, sale, expense)."
-        },
-        "quantity": {
-          "type": "number",
-          "description": "Quantity of items in the entry."
-        },
-        "price": {
-          "type": "number",
-          "description": "Price of each item in the entry."
-        },
-        "supplierId": {
-          "type": "string",
-          "description": "Reference to Supplier. (Relationship: Entry 1:1 Supplier)"
-        },
-        "timestamp": {
-          "type": "string",
-          "description": "Timestamp of when the entry was created.",
-          "format": "date-time"
-        },
-        "synced": {
-          "type": "boolean",
-          "description": "Indicates whether the entry has been synced with Firestore."
-        },
-        "userId": {
-          "type": "string",
-          "description": "Reference to User. (Relationship: User 1:N Entry)"
-        }
-      },
-      "required": [
-        "id",
-        "type",
-        "quantity",
-        "price",
-        "supplierId",
-        "timestamp",
-        "synced",
-        "userId"
-      ]
-    },
-    "Supplier": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Supplier",
-      "type": "object",
-      "description": "Represents a supplier or category for entries.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the supplier entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the supplier or category."
-        },
-        "categoryId": {
-          "type": "string",
-          "description": "Reference to Category. (Relationship: Supplier 1:1 Category)"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "categoryId"
-      ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a category for suppliers.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the category."
-        }
-      },
-      "required": [
-        "id",
         "name"
-      ]
-    },
-     "SalesEntry": {
-      "title": "Sales Entry",
-      "description": "Represents a single tarpaulin sales entry made by a worker or parent.",
-      "type": "object",
-      "properties": {
-        "date": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The date the sale was made."
-        },
-        "size": {
-          "type": "string",
-          "description": "The size of the tarpaulin sold (e.g., '18x24', 'other')."
-        },
-        "pieces": {
-          "type": "number",
-          "description": "The number of pieces sold."
-        },
-        "amount": {
-          "type": "number",
-          "description": "The total amount of the sale."
-        },
-        "branch": {
-          "type": "string",
-          "description": "The branch where the sale occurred."
-        },
-        "createdBy": {
-          "type": "string",
-          "description": "The UID of the user who created the entry."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the entry was saved to the server."
-        }
-      },
-      "required": [
-        "date",
-        "size",
-        "pieces",
-        "amount",
-        "branch",
-        "createdBy",
-        "createdAt"
       ]
     }
   },
@@ -212,63 +150,27 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Only the authenticated user can read/write their own profile. This collection is primarily for authentication-related information and user metadata.",
+          "description": "Stores user information. The 'userId' is the Firebase Authentication UID.",
           "params": [
             {
               "name": "userId",
-              "description": "The unique identifier of the user."
+              "description": "The unique identifier of the user, corresponding to the Firebase Auth UID."
             }
           ]
         }
       },
       {
-        "path": "roles_admin/{userId}",
+        "path": "roles/{roleId}",
         "definition": {
           "entityName": "Role",
           "schema": {
             "$ref": "#/backend/entities/Role"
           },
-          "description": "Indicates admin role. The existence of a document at this path grants admin privileges to the user with ID {userId}.",
+          "description": "Stores role information. Used for role-based access control.  It stores the Roles definitions such as admin, worker, etc.",
           "params": [
             {
-              "name": "userId",
-              "description": "The unique identifier of the admin user."
-            }
-          ]
-        }
-      },
-      {
-        "path": "users/{userId}/entries/{entryId}",
-        "definition": {
-          "entityName": "Entry",
-          "schema": {
-            "$ref": "#/backend/entities/Entry"
-          },
-          "description": "Stores entries (purchases, sales, expenses) for each user. Path-based ownership: only the user with ID {userId} can read/write entries at this path. Includes 'userId' for redundancy (in case of future migrations or complex queries).",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier of the user who owns the entry."
-            },
-            {
-              "name": "entryId",
-              "description": "The unique identifier of the entry."
-            }
-          ]
-        }
-      },
-      {
-        "path": "suppliers/{supplierId}",
-        "definition": {
-          "entityName": "Supplier",
-          "schema": {
-            "$ref": "#/backend/entities/Supplier"
-          },
-          "description": "Stores supplier information. Public read access, but only admins can create, update, or delete.",
-          "params": [
-            {
-              "name": "supplierId",
-              "description": "The unique identifier of the supplier."
+              "name": "roleId",
+              "description": "The unique identifier of the role."
             }
           ]
         }
@@ -280,7 +182,7 @@
           "schema": {
             "$ref": "#/backend/entities/Category"
           },
-          "description": "Stores categories for suppliers. Public read access, but only admins can create, update, or delete.",
+          "description": "Stores categories for entries.",
           "params": [
             {
               "name": "categoryId",
@@ -290,22 +192,22 @@
         }
       },
       {
-        "path": "sales_entries/{entryId}",
+        "path": "entries/{entryId}",
         "definition": {
-          "entityName": "SalesEntry",
+          "entityName": "Entry",
           "schema": {
-            "$ref": "#/backend/entities/SalesEntry"
+            "$ref": "#/backend/entities/Entry"
           },
-          "description": "Stores individual sales entries. Entries can be created by any authenticated user (worker/parent). Entries can only be read, updated, or deleted by admins.",
+          "description": "Stores entries (purchases, sales, expenses). Includes denormalized 'userId' for authorization independence.",
           "params": [
             {
               "name": "entryId",
-              "description": "The unique identifier for the sales entry."
+              "description": "The unique identifier of the entry."
             }
           ]
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the Tarpaulin Business App with a focus on offline-first functionality, role-based access, and ease of use for users with limited literacy. The key principle is Authorization Independence, achieved through denormalization of authorization data (specifically, user roles) to avoid costly and insecure `get()` calls in security rules. Structural Segregation is applied to ensure that each collection has a homogeneous security posture, simplifying the security rules. We leverage path-based ownership for Entries and explicit role collections for admin access.\n\n*   **Users (roles_admin/{uid})**: Admin roles are managed through the existence of documents in the `/roles_admin/{uid}` collection. This provides a simple and efficient way to check for admin privileges in security rules without reading user documents.\n*   **Entries (users/{userId}/entries/{entryId})**: Entries are stored as subcollections under each user's document. This structure ensures clear ownership and simplifies data management for offline-first functionality. The `userId` field within each entry facilitates filtering and retrieval of entries belonging to a specific user.\n*   **Sales Entries (sales_entries/{entryId})**: This new collection is added to store simplified sales entries. Any authenticated user can create entries, but only admins can modify them, ensuring data integrity. This separation simplifies security rules and access control for the entry-only page.\n\n**Authorization Independence:** Admin status does not rely on reading the User document, but on the existence of a `/roles_admin/{uid}` document. User entries are secured via path-based ownership. This eliminates the need for `get()` calls in security rules, ensuring atomic operations and robust security.\n\n**QAPs (Rules are not Filters):** The structure directly supports secure `list` operations. Admins can list all entries (with appropriate security rules), while workers can only list their own entries. The path-based ownership enables efficient filtering of entries based on user ID, and the separate roles collection allows for secure role-based access control."
+    "reasoning": "The Firestore data structure is designed to support the Tarpaulin Business App, focusing on offline capabilities, role-based access, and real-time profit/loss calculations. It follows the principles of Authorization Independence (denormalization), Structural Segregation (homogeneous security posture), and Access Modeling. User data, categories, entries, and roles are stored in separate collections for clear organization and security. Crucially, the `userId` is denormalized within the `entries` collection to ensure that entries are always associated with a specific user, and therefore avoid the use of `get()` calls in security rules for ownership verification, and the separation of data into `/users/{userId}/entries/{entryId}` supports QAPs as listing entries can be constrained to a specific user."
   }
 }
