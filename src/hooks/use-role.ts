@@ -1,36 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useFirebase, useUser, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import type { UserProfile, Role } from '@/lib/types';
+import { useUser } from '@/firebase';
+
+// This is the hardcoded admin email.
+// In a real-world scenario, you might want to manage this in a more flexible way,
+// but for this implementation, it's defined here.
+const ADMIN_EMAIL = 'me.jagadeesh.225@gmail.com';
 
 export function useRole() {
   const { user, isUserLoading } = useUser();
-  const { firestore } = useFirebase();
-
-  const userProfileRef = useMemoFirebase(
-    () => (firestore && user ? doc(firestore, 'users', user.uid) : null),
-    [firestore, user]
-  );
-  const { data: userProfile, isLoading: isUserProfileLoading } = useDoc<UserProfile>(userProfileRef);
-
-  const roleRef = useMemoFirebase(
-    () => (firestore && userProfile ? doc(firestore, 'roles', userProfile.roleId) : null),
-    [firestore, userProfile]
-  );
-  const { data: role, isLoading: isRoleLoading } = useDoc<Role>(roleRef);
-
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loading = isUserLoading || isUserProfileLoading || isRoleLoading;
-    setIsLoading(loading);
-    if (!loading) {
-      setIsAdmin(role?.name === 'Admin');
+    // The loading state of useRole is directly tied to the user loading state.
+    if (!isUserLoading) {
+      // Once user loading is complete, check if the user object exists and if the email matches.
+      if (user) {
+        setIsAdmin(user.email === ADMIN_EMAIL);
+      } else {
+        // If there's no user, they are not an admin.
+        setIsAdmin(false);
+      }
     }
-  }, [isUserLoading, isUserProfileLoading, isRoleLoading, role]);
+  }, [user, isUserLoading]);
 
-  return { user, isAdmin, isLoading };
+  // The hook's loading state is simply the user loading state.
+  return { user, isAdmin, isLoading: isUserLoading };
 }
