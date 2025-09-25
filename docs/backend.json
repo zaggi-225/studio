@@ -206,6 +206,19 @@
             }
           ]
         }
+      },
+      {
+        "path": "transactions/{transactionId}",
+        "definition": {
+          "entityName": "Transaction",
+          "description": "Stores aggregated transaction summaries (sales, purchases, expenses).",
+          "params": [
+            {
+              "name": "transactionId",
+              "description": "The unique identifier of the transaction."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore data structure is designed to support the Tarpaulin Business App, focusing on offline capabilities, role-based access, and real-time profit/loss calculations. It follows the principles of Authorization Independence (denormalization), Structural Segregation (homogeneous security posture), and Access Modeling. User data, categories, entries, and roles are stored in separate collections for clear organization and security. Crucially, the `userId` is denormalized within the `entries` collection to ensure that entries are always associated with a specific user, and therefore avoid the use of `get()` calls in security rules for ownership verification, and the separation of data into `/users/{userId}/entries/{entryId}` supports QAPs as listing entries can be constrained to a specific user."
