@@ -27,7 +27,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { collection, Timestamp } from 'firebase/firestore';
+import { collection, Timestamp, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { format as dateFnsFormat } from 'date-fns';
 
