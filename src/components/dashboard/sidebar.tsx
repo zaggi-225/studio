@@ -11,6 +11,7 @@ import {
   ShoppingCart,
   Users,
   FileText,
+  PlusSquare,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,8 @@ import { Logo } from '../logo';
 
 const navItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard' },
-  { href: '/dashboard/entries', icon: ShoppingCart, label: 'Entries', badge: '50' },
+  { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry' },
+  { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', badge: '50' },
   { href: '/dashboard/reports', icon: FileText, label: 'Reports' },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings' },
 ];

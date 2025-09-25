@@ -42,10 +42,11 @@ export function DashboardHeader() {
         </SheetTrigger>
         <SheetContent side="left" className="flex flex-col">
           <SheetHeader className='border-b mb-4 pb-4'>
-            <SheetTitle className='sr-only'>Navigation Menu</SheetTitle>
-            <Link href="#" className="flex items-center gap-2 text-lg font-semibold" prefetch={false}>
-              <Logo className="h-10 w-auto text-primary" />
-            </Link>
+            <SheetTitle>
+              <Link href="#" className="flex items-center gap-2 text-lg font-semibold" prefetch={false}>
+                <Logo className="h-10 w-auto text-primary" />
+              </Link>
+            </SheetTitle>
           </SheetHeader>
           <nav className="grid gap-2 text-lg font-medium">
             <Link
@@ -55,12 +56,19 @@ export function DashboardHeader() {
             >
               Dashboard
             </Link>
+             <Link
+              href="/dashboard/sales-entry"
+              className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+              prefetch={false}
+            >
+              Sales Entry
+            </Link>
             <Link
               href="/dashboard/entries"
               className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
               prefetch={false}
             >
-              Entries
+              All Entries
             </Link>
             <Link
               href="/dashboard/reports"

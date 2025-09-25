@@ -149,6 +149,52 @@
         "id",
         "name"
       ]
+    },
+     "SalesEntry": {
+      "title": "Sales Entry",
+      "description": "Represents a single tarpaulin sales entry made by a worker or parent.",
+      "type": "object",
+      "properties": {
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The date the sale was made."
+        },
+        "size": {
+          "type": "string",
+          "description": "The size of the tarpaulin sold (e.g., '18x24', 'other')."
+        },
+        "pieces": {
+          "type": "number",
+          "description": "The number of pieces sold."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The total amount of the sale."
+        },
+        "branch": {
+          "type": "string",
+          "description": "The branch where the sale occurred."
+        },
+        "createdBy": {
+          "type": "string",
+          "description": "The UID of the user who created the entry."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the entry was saved to the server."
+        }
+      },
+      "required": [
+        "date",
+        "size",
+        "pieces",
+        "amount",
+        "branch",
+        "createdBy",
+        "createdAt"
+      ]
     }
   },
   "auth": {
@@ -242,8 +288,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "sales_entries/{entryId}",
+        "definition": {
+          "entityName": "SalesEntry",
+          "schema": {
+            "$ref": "#/backend/entities/SalesEntry"
+          },
+          "description": "Stores individual sales entries. Entries can be created by any authenticated user (worker/parent). Entries can only be read, updated, or deleted by admins.",
+          "params": [
+            {
+              "name": "entryId",
+              "description": "The unique identifier for the sales entry."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to support the Tarpaulin Business App with a focus on offline-first functionality, role-based access, and ease of use for users with limited literacy. The key principle is Authorization Independence, achieved through denormalization of authorization data (specifically, user roles) to avoid costly and insecure `get()` calls in security rules. Structural Segregation is applied to ensure that each collection has a homogeneous security posture, simplifying the security rules. We leverage path-based ownership for Entries and explicit role collections for admin access.\n\n*   **Users (roles_admin/{uid})**: Admin roles are managed through the existence of documents in the `/roles_admin/{uid}` collection. This provides a simple and efficient way to check for admin privileges in security rules without reading user documents.\n*   **Entries (users/{userId}/entries/{entryId})**: Entries are stored as subcollections under each user's document. This structure ensures clear ownership and simplifies data management for offline-first functionality. The `userId` field within each entry facilitates filtering and retrieval of entries belonging to a specific user.\n\n**Authorization Independence:** Admin status does not rely on reading the User document, but on the existence of a `/roles_admin/{uid}` document. User entries are secured via path-based ownership. This eliminates the need for `get()` calls in security rules, ensuring atomic operations and robust security.\n\n**QAPs (Rules are not Filters):** The structure directly supports secure `list` operations. Admins can list all entries (with appropriate security rules), while workers can only list their own entries. The path-based ownership enables efficient filtering of entries based on user ID, and the separate roles collection allows for secure role-based access control."
+    "reasoning": "The Firestore structure is designed to support the Tarpaulin Business App with a focus on offline-first functionality, role-based access, and ease of use for users with limited literacy. The key principle is Authorization Independence, achieved through denormalization of authorization data (specifically, user roles) to avoid costly and insecure `get()` calls in security rules. Structural Segregation is applied to ensure that each collection has a homogeneous security posture, simplifying the security rules. We leverage path-based ownership for Entries and explicit role collections for admin access.\n\n*   **Users (roles_admin/{uid})**: Admin roles are managed through the existence of documents in the `/roles_admin/{uid}` collection. This provides a simple and efficient way to check for admin privileges in security rules without reading user documents.\n*   **Entries (users/{userId}/entries/{entryId})**: Entries are stored as subcollections under each user's document. This structure ensures clear ownership and simplifies data management for offline-first functionality. The `userId` field within each entry facilitates filtering and retrieval of entries belonging to a specific user.\n*   **Sales Entries (sales_entries/{entryId})**: This new collection is added to store simplified sales entries. Any authenticated user can create entries, but only admins can modify them, ensuring data integrity. This separation simplifies security rules and access control for the entry-only page.\n\n**Authorization Independence:** Admin status does not rely on reading the User document, but on the existence of a `/roles_admin/{uid}` document. User entries are secured via path-based ownership. This eliminates the need for `get()` calls in security rules, ensuring atomic operations and robust security.\n\n**QAPs (Rules are not Filters):** The structure directly supports secure `list` operations. Admins can list all entries (with appropriate security rules), while workers can only list their own entries. The path-based ownership enables efficient filtering of entries based on user ID, and the separate roles collection allows for secure role-based access control."
   }
 }
