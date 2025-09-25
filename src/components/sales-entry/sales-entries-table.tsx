@@ -16,8 +16,9 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table';
+import { isToday, isSameDay, startOfMonth, endOfMonth, startOfWeek, endOfWeek, subWeeks } from 'date-fns';
 
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableFacetedFilter } from '@/components/entries/data-table-faceted-filter';
@@ -25,6 +26,13 @@ import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { SalesEntry } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
+import { cn } from '@/lib/utils';
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { Calendar } from '../ui/calendar';
+import type { DateRange } from 'react-day-picker';
+import { format } from 'date-fns';
+
 
 const columns: ColumnDef<SalesEntry>[] = [
   {
@@ -48,7 +56,7 @@ const columns: ColumnDef<SalesEntry>[] = [
     header: () => <div className="text-right">💰 Amount</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('amount'));
-      const formatted = new Intl.NumberFormat('en-US', {
+      const formatted = new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency: 'INR',
       }).format(amount);
@@ -87,15 +95,25 @@ export function SalesEntriesTable() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },
   ]);
+  const [date, setDate] = React.useState<DateRange | undefined>();
 
   const tableData = React.useMemo(() => {
     if (!salesEntries) return [];
-    // Convert Firestore timestamps to JS Dates for the table
-    return salesEntries.map(entry => ({
+    
+    let filteredEntries = salesEntries.map(entry => ({
       ...entry,
       date: (entry.date as any)?.toDate ? (entry.date as any).toDate() : entry.date,
     }));
-  }, [salesEntries]);
+
+    if (date?.from && date?.to) {
+        filteredEntries = filteredEntries.filter(entry => {
+            const entryDate = new Date(entry.date);
+            return entryDate >= date.from! && entryDate <= date.to!;
+        });
+    }
+
+    return filteredEntries;
+  }, [salesEntries, date]);
 
   const table = useReactTable({
     data: tableData,
@@ -123,6 +141,14 @@ export function SalesEntriesTable() {
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  const totalPieces = React.useMemo(() => {
+    return table.getFilteredRowModel().rows.reduce((total, row) => total + (row.original.pieces || 0), 0);
+  }, [table.getFilteredRowModel().rows]);
+
+  const totalAmount = React.useMemo(() => {
+    return table.getFilteredRowModel().rows.reduce((total, row) => total + (row.original.amount || 0), 0);
+  }, [table.getFilteredRowModel().rows]);
+
   return (
     <Card>
       <CardHeader>
@@ -130,7 +156,7 @@ export function SalesEntriesTable() {
         <CardDescription>A record of all sales submitted.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
             {table.getColumn("branch") && (
                 <DataTableFacetedFilter
                     column={table.getColumn("branch")}
@@ -144,6 +170,49 @@ export function SalesEntriesTable() {
                     title="Size"
                     options={SIZES}
                 />
+            )}
+             <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  id="date"
+                  variant={'outline'}
+                  className={cn(
+                    'w-[300px] justify-start text-left font-normal',
+                    !date && 'text-muted-foreground'
+                  )}
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {date?.from ? (
+                    date.to ? (
+                      <>
+                        {format(date.from, 'LLL dd, y')} - {format(date.to, 'LLL dd, y')}
+                      </>
+                    ) : (
+                      format(date.from, 'LLL dd, y')
+                    )
+                  ) : (
+                    <span>Pick a date range</span>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  initialFocus
+                  mode="range"
+                  defaultMonth={date?.from}
+                  selected={date}
+                  onSelect={setDate}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+            {(date || columnFilters.length > 0) && (
+              <Button variant="ghost" onClick={() => {
+                setDate(undefined);
+                table.resetColumnFilters();
+              }}>
+                Clear Filters
+              </Button>
             )}
         </div>
         <div className="rounded-md border">
@@ -174,7 +243,13 @@ export function SalesEntriesTable() {
                 ))
               ) : table.getRowModel().rows?.length ? (
                 table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'}>
+                  <TableRow 
+                    key={row.id} 
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={cn(
+                        isToday(new Date(row.original.date)) && "bg-green-100 dark:bg-green-900/20"
+                    )}
+                  >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell key={cell.id}>
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
@@ -190,6 +265,19 @@ export function SalesEntriesTable() {
                 </TableRow>
               )}
             </TableBody>
+            <TableFooter>
+                <TableRow>
+                    <TableCell colSpan={2} className="font-bold">Totals</TableCell>
+                    <TableCell className="font-bold">{totalPieces}</TableCell>
+                    <TableCell className="text-right font-bold">
+                        {new Intl.NumberFormat('en-IN', {
+                            style: 'currency',
+                            currency: 'INR',
+                        }).format(totalAmount)}
+                    </TableCell>
+                    <TableCell></TableCell>
+                </TableRow>
+            </TableFooter>
           </Table>
         </div>
         <div className="flex items-center justify-end space-x-2 py-4">

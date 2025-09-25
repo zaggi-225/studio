@@ -3,11 +3,15 @@
 
 import { SalesEntryForm } from '@/components/sales-entry/sales-entry-form';
 import { SalesEntriesTable } from '@/components/sales-entry/sales-entries-table';
+import { QuickInsights } from '@/components/sales-entry/quick-insights';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function SalesEntryPage() {
   return (
     <div className="container mx-auto py-10 space-y-8">
+      
+      <QuickInsights />
+
       <Card className="w-full">
         <CardHeader className="text-center">
           <CardTitle className="text-3xl font-headline flex items-center justify-center gap-2">
