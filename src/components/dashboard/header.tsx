@@ -1,3 +1,5 @@
+'use client';
+
 import Link from 'next/link';
 import { Menu, Search, User } from 'lucide-react';
 import {
@@ -15,9 +17,19 @@ import { Logo } from '../logo';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { ThemeToggle } from '../theme-toggle';
+import { useAuth } from '@/firebase';
+import { useRouter } from 'next/navigation';
 
 export function DashboardHeader() {
   const userAvatar = PlaceHolderImages.find(img => img.id === 'user-avatar');
+  const auth = useAuth();
+  const router = useRouter();
+
+  const handleLogout = () => {
+    auth.signOut().then(() => {
+      router.push('/');
+    });
+  };
 
   return (
     <header className="flex h-14 items-center gap-4 border-b bg-background px-4 lg:h-[60px] lg:px-6">
@@ -98,8 +110,8 @@ export function DashboardHeader() {
           <DropdownMenuItem>Settings</DropdownMenuItem>
           <DropdownMenuItem>Support</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem asChild>
-            <Link href="/" prefetch={false}>Logout</Link>
+          <DropdownMenuItem onClick={handleLogout}>
+            Logout
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
