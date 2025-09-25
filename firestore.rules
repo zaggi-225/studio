@@ -1,0 +1,185 @@
+/**
+ * @fileoverview Firestore Security Rules for the Tarpaulin Business App.
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user profiles and entries,
+ * supplemented by role-based access control for administrative functions. Access is
+ * granted based on the authenticated user's ID and/or the existence of an admin role.
+ * Authorization Independence is achieved by leveraging path-based ownership for Entries
+ * and explicit role collections for admin access.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles.
+ * - /roles_admin/{userId}: Indicates admin role.
+ * - /users/{userId}/entries/{entryId}: Stores user-specific entries (purchases, sales, expenses).
+ * - /suppliers/{supplierId}: Stores supplier information.
+ * - /categories/{categoryId}: Stores categories for suppliers.
+ *
+ * Key Security Decisions:
+ * - User profiles are only accessible to the owning user.
+ * - Admin privileges are granted by the existence of a document in the `/roles_admin/{userId}` collection.
+ * - Entries are owned by the user and stored under their profile.
+ * - Suppliers and Categories are publicly readable but only modifiable by admins.
+ * - Listing all users is disallowed.
+ *
+ * Denormalization for Authorization:
+ * - Admin status is determined by the presence of a document in the `roles_admin` collection,
+ *   avoiding the need to read user documents to check for admin roles.
+ * - Entries include a `userId` field to ensure consistent ownership, even though ownership is
+ *   primarily enforced by the path.
+ *
+ * Structural Segregation:
+ * - Admin roles are managed in a separate collection (`roles_admin`) to simplify access control
+ *   logic and avoid mixing role data with user profile data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Secure root access.
+     * @path /
+     * @allow get, list: if false;
+     * @deny create, update, delete: if false;
+     * @principle Prevents any unauthorized access at root level.
+     */
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    /**
+     * @description Manages user profiles.
+     * @path /users/{userId}
+     * @allow get: if isSignedIn() && isOwner(userId);
+     * @allow list: if false;
+     * @allow create: if isSignedIn() && isOwner(userId) && request.auth.uid == userId;
+     * @allow update: if isSignedIn() && isOwner(userId);
+     * @allow delete: if false;
+     * @deny create: if !isSignedIn() || !isOwner(userId) || request.auth.uid != userId;
+     * @deny update: if !isSignedIn() || !isOwner(userId);
+     * @principle Enforces document ownership for reads and writes, allowing only the owner to read and write.
+     */
+    match /users/{userId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(userId) && request.auth.uid == userId;
+      allow update: if isSignedIn() && isOwner(userId);
+      allow delete: if false;
+    }
+
+    /**
+     * @description Grants admin privileges based on the existence of a document.
+     * @path /roles_admin/{userId}
+     * @allow get: if false;
+     * @allow list: if false;
+     * @allow create: if isAdmin();
+     * @allow update: if false;
+     * @allow delete: if isAdmin();
+     * @deny create: if !isAdmin();
+     * @deny delete: if !isAdmin();
+     * @principle Controls admin role assignment via document existence, granting create/delete access to existing admins only.
+     */
+    match /roles_admin/{userId} {
+      allow get: if false;
+      allow list: if false;
+      allow create: if isAdmin();
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Stores entries for each user, enforcing path-based ownership.
+     * @path /users/{userId}/entries/{entryId}
+     * @allow get: if isSignedIn() && isOwner(userId);
+     * @allow list: if isSignedIn() && isOwner(userId);
+     * @allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+     * @allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == request.resource.data.userId;
+     * @allow delete: if isSignedIn() && isExistingOwner(userId);
+     * @deny create: if !isSignedIn() || !isOwner(userId) || request.resource.data.userId != userId;
+     * @deny update: if !isSignedIn() || !isExistingOwner(userId) || resource.data.userId != request.resource.data.userId;
+     * @deny delete: if !isSignedIn() || !isExistingOwner(userId);
+     * @principle Enforces document ownership for reads and writes, validating userId on create, and ensuring existence before updates/deletes.
+     */
+    match /users/{userId}/entries/{entryId} {
+      allow get: if isSignedIn() && isOwner(userId);
+      allow list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isSignedIn() && isExistingOwner(userId) && resource.data.userId == request.resource.data.userId;
+      allow delete: if isSignedIn() && isExistingOwner(userId);
+    }
+
+    /**
+     * @description Stores supplier information with public read access and admin-only write access.
+     * @path /suppliers/{supplierId}
+     * @allow get, list: if true;
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin() && resource != null;
+     * @allow delete: if isAdmin() && resource != null;
+     * @deny create: if !isAdmin();
+     * @deny update: if !isAdmin();
+     * @deny delete: if !isAdmin();
+     * @principle Allows public read access but restricts writes to admins only, also ensuring existence before updates/deletes.
+     */
+    match /suppliers/{supplierId} {
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Stores categories with public read access and admin-only write access.
+     * @path /categories/{categoryId}
+     * @allow get, list: if true;
+     * @allow create: if isAdmin();
+     * @allow update: if isAdmin() && resource != null;
+     * @allow delete: if isAdmin() && resource != null;
+     * @deny create: if !isAdmin();
+     * @deny update: if !isAdmin();
+     * @deny delete: if !isAdmin();
+     * @principle Allows public read access but restricts writes to admins only, also ensuring existence before updates/deletes.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin() && resource != null;
+      allow delete: if isAdmin() && resource != null;
+    }
+
+    // --- Helper functions ---
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return {bool} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the requesting user is the owner of the document, based on the userId.
+     * @param {string} userId The user ID to compare against the request's authentication UID.
+     * @return {bool} True if the user is the owner, false otherwise.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the requesting user is the owner of the document and if the document exists.
+     * @param {string} userId The user ID to compare against the document's userId.
+     * @return {bool} True if the user is the owner and the document exists, false otherwise.
+     */
+    function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Checks if the requesting user has admin privileges.
+     * @return {bool} True if the user has admin privileges, false otherwise.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+  }
+}
