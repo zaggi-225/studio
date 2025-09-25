@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -8,17 +8,34 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth } from '@/firebase';
+import { useAuth, useFirebase, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { useUser } from '@/firebase/provider';
-import { useEffect } from 'react';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const auth = useAuth();
+  const { firestore } = useFirebase();
   const router = useRouter();
   const { user, isUserLoading } = useUser();
+
+  // Ensure admin role exists
+  useEffect(() => {
+    if (firestore) {
+      const adminRoleRef = doc(firestore, 'roles', 'admin');
+      getDoc(adminRoleRef).then(docSnap => {
+        if (!docSnap.exists()) {
+          setDoc(adminRoleRef, {
+            id: 'admin',
+            name: 'Admin',
+            permissions: ['read', 'write', 'delete'],
+          });
+        }
+      });
+    }
+  }, [firestore]);
+
 
   useEffect(() => {
     if (!isUserLoading && user) {
