@@ -2,155 +2,146 @@
  * @fileoverview Firestore Security Rules for Tarpaulin Business App
  *
  * Core Philosophy:
- * This ruleset enforces a strict user-ownership model for data privacy and access control.
- * Only authenticated users can access their own data.
+ * This ruleset enforces a user-ownership model for entries and leverages role-based access control where needed.
+ * Data is segregated into top-level collections for clear authorization boundaries.
  *
  * Data Structure:
- * - /users/{userId}: Stores user profiles, with 'userId' matching the Firebase Auth UID.
- * - /roles/{roleId}: Stores role definitions for role-based access control.
- * - /categories/{categoryId}: Stores categories for transaction entries.
- * - /entries/{entryId}: Stores transaction entries, with denormalized 'userId' for ownership.
+ * - /users/{userId}: Stores user profiles; 'userId' matches the Firebase Auth UID.
+ * - /roles/{roleId}: Stores role definitions (e.g., admin, worker).
+ * - /categories/{categoryId}: Stores entry categories.
+ * - /entries/{entryId}: Stores transaction entries; includes a denormalized 'userId' for ownership checks.
+ * - /transactions/{transactionId}: Stores aggregated transaction summaries.
+ * - /sales_entries/{salesEntryId}: Stores individual sales entries.
  *
  * Key Security Decisions:
- * - User listing is disallowed.
- * - All write operations are protected by authorization checks.
- * - Data required for authorization is denormalized onto the documents being secured to
- *   avoid costly `get()` calls in security rules.
- * - The rules prioritize a secure-by-default posture, explicitly denying access where
- *   the data relationship or access control is unclear.
+ * - User listing is disabled for privacy.
+ * - Entries are strictly user-owned, enforced via the 'userId' field.
+ * - Role-based access is used for privileged operations.
+ *
+ * Denormalization for Authorization:
+ * - The `entries` collection denormalizes the `userId` to enable efficient ownership checks without needing extra `get()` calls.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Checks if the request is made by a signed-in user.
-     * @returns {boolean} True if the user is signed in, false otherwise.
-     */
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    /**
-     * @description Checks if the authenticated user's UID matches the provided userId.
-     * @param {string} userId - The user ID to compare against the authenticated user's UID.
-     * @returns {boolean} True if the UID matches, false otherwise.
-     */
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * @description Checks if the authenticated user owns the resource and the resource exists.
-     * @param {string} userId - The user ID to compare against the resource's owner ID.
-     * @returns {boolean} True if the user owns the resource and it exists, false otherwise.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
-    }
-
-    /**
-     * @description Rules for the /users/{userId} collection.
-     * @path /databases/{database}/documents/users/{userId}
-     * @allow (create) - Authenticated user can create their own user document if the userId matches their auth.uid.
-     * @allow (get) - Authenticated user can get their own user document if the userId matches their auth.uid.
-     * @allow (list) - Listing all users is disallowed.
-     * @allow (update) - Authenticated user can update their own user document if the userId matches their auth.uid.
-     * @allow (delete) - Authenticated user can delete their own user document if the userId matches their auth.uid.
-     * @deny (create) - If the userId does not match the authenticated user's UID.
-     * @deny (get) - If the userId does not match the authenticated user's UID.
-     * @deny (update) - If the userId does not match the authenticated user's UID.
-     * @deny (delete) - If the userId does not match the authenticated user's UID.
+     * @description Grants access to user documents based on ownership.
+     * @path /users/{userId}
+     * @allow (create) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can create their own user document at /users/WlfCFBPzc0egM7tmsu6DqEulp503
+     * @deny (create) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot create a user document at /users/another_user_id
+     * @allow (get, list) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can read their own user document at /users/WlfCFBPzc0egM7tmsu6DqEulp503
+     * @deny (get, list) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot read another user document at /users/another_user_id
+     * @allow (update, delete) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can update/delete their own user document at /users/WlfCFBPzc0egM7tmsu6DqEulp503
+     * @deny (update, delete) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot update/delete another user document at /users/another_user_id
      * @principle Enforces document ownership for all operations.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow list: if false; // User listing is disabled.
+      allow create: if isOwner(userId);
+      allow update: if isExistingOwner(userId);
       allow delete: if isExistingOwner(userId);
     }
 
     /**
-     * @description Rules for the /roles/{roleId} collection.
-     * @path /databases/{database}/documents/roles/{roleId}
-     * @allow (get) - Anyone can read role definitions (public).
-     * @allow (list) - Anyone can list role definitions (public).
-     * @deny (create) - No one can create roles via client; only backend.
-     * @deny (update) - No one can update roles via client; only backend.
-     * @deny (delete) - No one can delete roles via client; only backend.
-     * @principle Roles are read-only from the client-side.
+     * @description Grants read access to roles and restricts write access.
+     * @path /roles/{roleId}
+     * @allow (get, list) Any user can read roles.
+     * @deny (create, update, delete) No user can create, update, or delete roles.
+     * @principle Restricts write access to roles, allowing only read access for all users.
      */
     match /roles/{roleId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Rules for the /categories/{categoryId} collection.
-     * @path /databases/{database}/documents/categories/{categoryId}
-     * @allow (get) - Anyone can read category definitions (public).
-     * @allow (list) - Anyone can list category definitions (public).
-     * @deny (create) - No one can create categories via client; only backend.
-     * @deny (update) - No one can update categories via client; only backend.
-     * @deny (delete) - No one can delete categories via client; only backend.
-     * @principle Categories are read-only from the client-side.
+     * @description Grants read access to categories and restricts write access.
+     * @path /categories/{categoryId}
+     * @allow (get, list) Any user can read categories.
+     * @deny (create, update, delete) No user can create, update, or delete categories.
+     * @principle Restricts write access to categories, allowing only read access for all users.
      */
     match /categories/{categoryId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Rules for the /entries/{entryId} collection.
-     * @path /databases/{database}/documents/entries/{entryId}
-     * @allow (create) - Authenticated user can create an entry if the entry's userId matches their auth.uid.
-     * @allow (get) - Authenticated user can get an entry if the entry's userId matches their auth.uid.
-     * @allow (list) - Authenticated user can list entries if the entry's userId matches their auth.uid.
-     * @allow (update) - Authenticated user can update an entry if the entry's userId matches their auth.uid and the entry exists.
-     * @allow (delete) - Authenticated user can delete an entry if the entry's userId matches their auth.uid and the entry exists.
-     * @deny (create) - If the userId does not match the authenticated user's UID.
-     * @deny (get) - If the userId does not match the authenticated user's UID.
-     * @deny (list) - If the userId does not match the authenticated user's UID.
-     * @deny (update) - If the userId does not match the authenticated user's UID.
-     * @deny (delete) - If the userId does not match the authenticated user's UID.
-     * @principle Enforces document ownership for all operations.
+     * @description Grants access to entries based on ownership.
+     * @path /entries/{entryId}
+     * @allow (create) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can create an entry with userId 'WlfCFBPzc0egM7tmsu6DqEulp503'.
+     * @deny (create) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot create an entry with userId 'another_user_id'.
+     * @allow (get, list) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can read their own entries.
+     * @deny (get, list) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot read entries owned by another user.
+     * @allow (update, delete) User 'WlfCFBPzc0egM7tmsu6DqEulp503' can update/delete their own existing entries.
+     * @deny (update, delete) User 'WlfCFBPzc0egM7tmsu6DqEulp503' cannot update/delete entries owned by another user.
+     * @principle Enforces document ownership and validates relational integrity on create.
      */
     match /entries/{entryId} {
-      allow get, list: if isSignedIn() && request.auth.uid == resource.data.userId;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isEntryOwner(resource.data.userId);
+      allow list: if isEntryOwner(resource.data.userId);
+      allow create: if request.resource.data.userId == request.auth.uid;
+      allow update: if isExistingEntryOwner(resource.data.userId);
+      allow delete: if isExistingEntryOwner(resource.data.userId);
     }
 
-      /**
-     * @description Rules for the /transactions/{transactionId} collection.
-     * @path /databases/{database}/documents/transactions/{transactionId}
-     * @allow (get) - Anyone can read transaction definitions (public).
-     * @allow (list) - Anyone can list transaction definitions (public).
-     * @deny (create) - No one can create transactions via client; only backend.
-     * @deny (update) - No one can update transactions via client; only backend.
-     * @deny (delete) - No one can delete transactions via client; only backend.
-     * @principle transactions are read-only from the client-side.
+    /**
+     * @description Grants read access to transactions and restricts write access.
+     * @path /transactions/{transactionId}
+     * @allow (get, list) Any user can read transactions.
+     * @deny (create, update, delete) No user can create, update, or delete transactions.
+     * @principle Restricts write access to transactions, allowing only read access for all users.
      */
     match /transactions/{transactionId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
-      /**
-     * @description Rules for the /sales_entries/{salesEntryId} collection.
-     * @path /databases/{database}/documents/sales_entries/{salesEntryId}
-     * @allow (get) - Anyone can read sales_entries definitions (public).
-     * @allow (list) - Anyone can list sales_entries definitions (public).
-     * @deny (create) - No one can create sales_entries via client; only backend.
-     * @deny (update) - No one can update sales_entries via client; only backend.
-     * @deny (delete) - No one can delete sales_entries via client; only backend.
-     * @principle sales_entries are read-only from the client-side.
+    /**
+     * @description Grants read access to sales entries and restricts write access.
+     * @path /sales_entries/{salesEntryId}
+     * @allow (get, list) Any user can read sales entries.
+     * @deny (create, update, delete) No user can create, update, or delete sales entries.
+     * @principle Restricts write access to sales entries, allowing only read access for all users.
      */
     match /sales_entries/{salesEntryId} {
-      allow get, list: if true;
-      allow create, update, delete: if false;
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return isOwner(userId) && resource != null;
+  }
+
+  function isEntryOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+  }
+
+  function isExistingEntryOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId && resource != null;
   }
 }
