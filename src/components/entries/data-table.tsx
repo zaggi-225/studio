@@ -73,10 +73,19 @@ export function DataTable<TData, TValue>({
     { value: 'purchase', label: 'Purchase' },
     { value: 'expense', label: 'Expense' },
   ]
+  const branches = [
+    { value: 'Nidagundi', label: 'Nidagundi' },
+    { value: 'Basavana Bagewadi', label: 'Basavana Bagewadi' },
+  ]
+  const names = [
+      { value: 'M.R Bijapur', label: 'M.R Bijapur' },
+      { value: 'Jaggu', label: 'Jaggu' },
+      { value: 'Pavitra', label: 'Pavitra' },
+  ]
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex flex-1 items-center space-x-2">
             <Input
             placeholder="Filter by description..."
@@ -91,6 +100,20 @@ export function DataTable<TData, TValue>({
                 column={table.getColumn("type")}
                 title="Type"
                 options={transactionTypes}
+            />
+            )}
+             {table.getColumn("branch") && (
+            <DataTableFacetedFilter
+                column={table.getColumn("branch")}
+                title="Branch"
+                options={branches}
+            />
+            )}
+            {table.getColumn("name") && (
+            <DataTableFacetedFilter
+                column={table.getColumn("name")}
+                title="Name"
+                options={names}
             />
             )}
         </div>
@@ -173,3 +196,5 @@ export function DataTable<TData, TValue>({
     </div>
   )
 }
+
+    

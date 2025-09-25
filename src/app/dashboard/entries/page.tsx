@@ -3,9 +3,8 @@ import { useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
-import { columns } from '@/components/entries/columns';
-import { DataTable } from '@/components/entries/data-table';
 import { AddEntrySheet } from '@/components/entries/add-entry-sheet';
+import { CollapsibleDataTable } from '@/components/entries/collapsible-data-table';
 
 export default function EntriesPage() {
   const { firestore } = useFirebase();
@@ -20,7 +19,7 @@ export default function EntriesPage() {
     return transactions.map(t => ({
       ...t,
       date: (t.date as any)?.toDate ? (t.date as any).toDate().toISOString() : t.date,
-    }));
+    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions]);
 
 
@@ -28,14 +27,16 @@ export default function EntriesPage() {
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold font-headline">Transactions</h1>
+          <h1 className="text-3xl font-bold font-headline">All Entries</h1>
           <p className="text-muted-foreground">
             View and manage all your business transactions.
           </p>
         </div>
         <AddEntrySheet />
       </div>
-      <DataTable columns={columns} data={isLoading ? [] : tableData} />
+      <CollapsibleDataTable data={isLoading ? [] : tableData} />
     </div>
   );
 }
+
+    

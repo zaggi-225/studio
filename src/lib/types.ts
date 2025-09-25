@@ -1,4 +1,3 @@
-
 export type Transaction = {
   id: string;
   type: 'sale' | 'purchase' | 'expense';
@@ -7,6 +6,8 @@ export type Transaction = {
   description: string;
   category: string;
   name?: string;
+  branch?: string;
+  pieces?: number;
 };
 
 export type SalesEntry = {
@@ -16,6 +17,9 @@ export type SalesEntry = {
   pieces: number;
   amount: number;
   branch: string;
+  name: string;
   createdBy: string;
   createdAt: any; // Firestore ServerTimestamp
 }
+
+    

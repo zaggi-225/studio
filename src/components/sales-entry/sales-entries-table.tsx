@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -23,7 +22,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableFacetedFilter } from '@/components/entries/data-table-faceted-filter';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, setDoc, doc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, getDocs, setDoc, doc, Timestamp, writeBatch } from 'firebase/firestore';
 import type { SalesEntry, Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -164,51 +163,74 @@ export function SalesEntriesTable() {
     const startOfToday = startOfDay(today);
     const endOfToday = endOfDay(today);
 
-    const q = query(
-      collection(firestore, 'sales_entries'),
-      where('date', '>=', startOfToday),
-      where('date', '<=', endOfToday)
-    );
-
     try {
-      const querySnapshot = await getDocs(q);
-      const todaysEntries = querySnapshot.docs.map(doc => doc.data() as SalesEntry);
+        const q = query(
+            collection(firestore, 'sales_entries'),
+            where('date', '>=', startOfToday),
+            where('date', '<=', endOfToday)
+        );
+        const querySnapshot = await getDocs(q);
+        const todaysEntries = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id} as SalesEntry));
 
-      if (todaysEntries.length === 0) {
-        toast({ title: 'No sales today to sync.', variant: 'default' });
-        setIsSyncing(false);
-        return;
-      }
+        if (todaysEntries.length === 0) {
+            toast({ title: 'No sales today to sync.', variant: 'default' });
+            setIsSyncing(false);
+            return;
+        }
 
-      const totalAmount = todaysEntries.reduce((sum, entry) => sum + entry.amount, 0);
-      const sizeCounts = todaysEntries.reduce((acc, entry) => {
-        const size = entry.size || 'N/A';
-        acc[size] = (acc[size] || 0) + entry.pieces;
-        return acc;
-      }, {} as { [key: string]: number });
+        // Group by date, branch, and name
+        const groupedSales = todaysEntries.reduce((acc, entry) => {
+            const dateStr = format( (entry.date as any).toDate(), 'yyyy-MM-dd');
+            const key = `${dateStr}|${entry.branch}|${entry.name}`;
+            if (!acc[key]) {
+                acc[key] = [];
+            }
+            acc[key].push(entry);
+            return acc;
+        }, {} as Record<string, SalesEntry[]>);
 
-      const description = Object.entries(sizeCounts)
-        .map(([size, count]) => `${size} = ${count}`)
-        .join(', ');
 
-      const dailySummary: Omit<Transaction, 'id'> = {
-        date: Timestamp.fromDate(startOfToday).toDate().toISOString(),
-        type: 'sale',
-        description: description,
-        category: 'Customer',
-        amount: totalAmount,
-        name: 'Aggregated Sales',
-      };
+        const batch = writeBatch(firestore);
 
-      const docId = format(today, 'yyyy-MM-dd');
-      const docRef = doc(firestore, 'transactions', docId);
+        for (const key in groupedSales) {
+            const entries = groupedSales[key];
+            const [dateStr, branch, name] = key.split('|');
+            
+            const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
+            const totalPieces = entries.reduce((sum, entry) => sum + entry.pieces, 0);
+            const sizeCounts = entries.reduce((acc, entry) => {
+                const size = entry.size || 'N/A';
+                acc[size] = (acc[size] || 0) + entry.pieces;
+                return acc;
+            }, {} as { [key: string]: number });
 
-      setDocumentNonBlocking(docRef, dailySummary, { merge: true });
+            const description = Object.entries(sizeCounts)
+                .map(([size, count]) => `${size}=${count}`)
+                .join(', ');
+
+            const dailySummary: Omit<Transaction, 'id'> = {
+                date: Timestamp.fromDate(new Date(dateStr)).toDate().toISOString(),
+                type: 'sale',
+                description: description,
+                category: 'Customer',
+                amount: totalAmount,
+                name: name,
+                branch: branch,
+                pieces: totalPieces,
+            };
+            
+            const docId = `${dateStr}-${branch.replace(/\s+/g, '_')}-${name.replace(/\s+/g, '_')}`;
+            const docRef = doc(firestore, 'transactions', docId);
+
+            batch.set(docRef, dailySummary, { merge: true });
+        }
+
+        await batch.commit();
       
-      toast({
-        title: '✅ Sales Synced',
-        description: 'Today\'s sales data synced to All Entries successfully.',
-      });
+        toast({
+            title: '✅ Sales Synced',
+            description: 'Today\'s sales data synced to All Entries successfully.',
+        });
 
     } catch (error) {
       console.error("Error during manual sync:", error);
@@ -389,3 +411,5 @@ export function SalesEntriesTable() {
     </Card>
   );
 }
+
+    

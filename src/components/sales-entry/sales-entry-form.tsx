@@ -23,7 +23,7 @@ import { format, startOfTomorrow } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, serverTimestamp } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
@@ -39,6 +39,7 @@ const formSchema = z.object({
   pieces: z.coerce.number().min(1, 'Please enter the number of pieces.'),
   amount: z.coerce.number().min(1, 'Please enter the total amount.'),
   branch: z.string({ required_error: 'Please select a branch.' }),
+  name: z.string({ required_error: 'Please select a name.' }),
 }).refine(data => {
     if (data.size === 'other' && !data.otherSize) {
         return false;
@@ -64,15 +65,11 @@ export function SalesEntryForm() {
       pieces: 0,
       amount: 0,
       branch: '',
+      name: '',
     },
   });
 
   const selectedSize = form.watch('size');
-
-  // const playAudio = (field: string) => {
-  //   console.log(`Playing audio for ${field}`);
-  //   // Example: new Audio(`/audio/sales/${field}.mp3`).play();
-  // };
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -93,23 +90,20 @@ export function SalesEntryForm() {
         pieces: values.pieces,
         amount: values.amount,
         branch: values.branch,
+        name: values.name,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
     };
 
     try {
-        // Offline handling would go here.
-        // For now, we write directly to Firestore.
         const salesEntriesRef = collection(firestore, 'sales_entries');
         addDocumentNonBlocking(salesEntriesRef, entryData);
-        // In a real offline-first app, you'd save to IndexedDB here
-        // and sync later.
         
         toast({
             title: '✅ Entry Saved',
             description: 'Your sales entry has been saved successfully.',
         });
-        form.reset({ date: new Date(), size: '', otherSize: '', pieces: 0, amount: 0, branch: '' });
+        form.reset({ date: new Date(), size: '', otherSize: '', pieces: 0, amount: 0, branch: '', name: '' });
     } catch (error) {
         console.error("Error saving entry:", error);
         toast({
@@ -154,7 +148,7 @@ export function SalesEntryForm() {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date > new Date()}
+                      disabled={(date) => date > new Date() || date > startOfTomorrow()}
                       initialFocus
                     />
                   </PopoverContent>
@@ -187,6 +181,29 @@ export function SalesEntryForm() {
               </FormItem>
             )}
           />
+          
+           <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-lg flex items-center gap-2">🧑‍💼 Name</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-14 text-lg">
+                        <SelectValue placeholder="Select a name" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="M.R Bijapur">M.R Bijapur</SelectItem>
+                      <SelectItem value="Jaggu">Jaggu</SelectItem>
+                      <SelectItem value="Pavitra">Pavitra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
           <FormField
             control={form.control}
@@ -277,3 +294,5 @@ export function SalesEntryForm() {
     </Form>
   );
 }
+
+    
