@@ -329,42 +329,42 @@ const DateGroupRow = ({
 
   return (
     <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
-        <>
-          <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
-            <TableCell>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-9 p-0">
-                  {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-                  <span className="sr-only">Toggle group</span>
-                </Button>
-              </CollapsibleTrigger>
-            </TableCell>
-            <TableCell colSpan={columns.findIndex(c => c.accessorKey === 'pieces')}>
-              {format(new Date(date), 'PPP')}
-            </TableCell>
-            <TableCell className="text-right">{groupTotalPieces}</TableCell>
-            <TableCell className="text-right">
-              {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(groupTotalAmount)}
-            </TableCell>
-            <TableCell></TableCell>
-          </TableRow>
+      <>
+        <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
+          <TableCell>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-9 p-0">
+                {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                <span className="sr-only">Toggle group</span>
+              </Button>
+            </CollapsibleTrigger>
+          </TableCell>
+          <TableCell colSpan={columns.findIndex(c => c.accessorKey === 'pieces')}>
+            {format(new Date(date), 'PPP')}
+          </TableCell>
+          <TableCell className="text-right">{groupTotalPieces}</TableCell>
+          <TableCell className="text-right">
+            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(groupTotalAmount)}
+          </TableCell>
+          <TableCell></TableCell>
+        </TableRow>
 
-          <CollapsibleContent asChild>
-            <>
-              {subTable.getRowModel().rows.map((row) => (
-                <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="bg-muted/50">
-                   <TableCell></TableCell>
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </>
-          </CollapsibleContent>
-        </>
-      </Collapsible>
+        <CollapsibleContent asChild>
+          <>
+            {subTable.getRowModel().rows.map((row) => (
+              <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="bg-muted/50">
+                  <TableCell></TableCell>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </>
+        </CollapsibleContent>
+      </>
+    </Collapsible>
   );
 };
     
