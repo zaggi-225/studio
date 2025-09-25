@@ -10,7 +10,11 @@ import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
 import { useAuth, useFirebase, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -24,15 +28,27 @@ export default function LoginPage() {
   useEffect(() => {
     if (firestore) {
       const adminRoleRef = doc(firestore, 'roles', 'admin');
-      getDoc(adminRoleRef).then(docSnap => {
-        if (!docSnap.exists()) {
-          setDoc(adminRoleRef, {
-            id: 'admin',
-            name: 'Admin',
-            permissions: ['read', 'write', 'delete'],
-          });
-        }
-      });
+      
+      getDoc(adminRoleRef)
+        .then(docSnap => {
+          if (!docSnap.exists()) {
+            const adminRoleData = {
+              id: 'admin',
+              name: 'Admin',
+              permissions: ['read', 'write', 'delete'],
+            };
+            // Use the non-blocking function which has built-in error handling
+            setDocumentNonBlocking(adminRoleRef, adminRoleData, { merge: true });
+          }
+        })
+        .catch(error => {
+            // If getDoc fails due to permissions, emit a contextual error
+            const permissionError = new FirestorePermissionError({
+                path: adminRoleRef.path,
+                operation: 'get',
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
     }
   }, [firestore]);
 
