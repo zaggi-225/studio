@@ -18,7 +18,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   // Ensure admin role exists
   useEffect(() => {
-    if (firestore && user) { // Only run if firestore and user are available
+    if (firestore) {
       const adminRoleRef = doc(firestore, 'roles', 'admin');
       
       getDoc(adminRoleRef)
@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             errorEmitter.emit('permission-error', permissionError);
         });
     }
-  }, [firestore, user]);
+  }, [firestore]);
 
 
   useEffect(() => {

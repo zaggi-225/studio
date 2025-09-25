@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/logo';
-import { useAuth, useFirebase, useUser } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { initiateEmailSignIn } from '@/firebase/non-blocking-login';
 
 export default function LoginPage() {
@@ -36,7 +36,6 @@ export default function LoginPage() {
       </div>
     );
   }
-
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
