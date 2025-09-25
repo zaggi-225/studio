@@ -59,7 +59,11 @@ export function SalesEntryForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       date: new Date(),
+      size: '',
       otherSize: '',
+      pieces: 0,
+      amount: 0,
+      branch: '',
     },
   });
 
@@ -105,7 +109,7 @@ export function SalesEntryForm() {
             title: '✅ Entry Saved',
             description: 'Your sales entry has been saved successfully.',
         });
-        form.reset({ date: new Date(), otherSize: '' });
+        form.reset({ date: new Date(), size: '', otherSize: '', pieces: 0, amount: 0, branch: '' });
     } catch (error) {
         console.error("Error saving entry:", error);
         toast({
