@@ -29,12 +29,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { collection, Timestamp, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import { format as dateFnsFormat } from 'date-fns';
+import { startOfTomorrow } from 'date-fns';
 
 const formSchema = z.object({
   date: z.date({
     required_error: 'A date is required.',
-  }).max(new Date(), { message: "Date cannot be in the future." }),
+  }).max(startOfTomorrow(), { message: "Date cannot be in the future." }),
   type: z.enum(['sale', 'purchase', 'expense'], { required_error: 'Type is required.' }),
   name: z.string({ required_error: 'Name is required.' }),
   amount: z.coerce.number().min(0.01, 'Amount is required.'),

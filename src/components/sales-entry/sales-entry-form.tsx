@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
+import { format, startOfTomorrow } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
@@ -33,7 +33,7 @@ import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 const formSchema = z.object({
   date: z.date({
     required_error: 'A date is required.',
-  }).max(new Date(), { message: "Date cannot be in the future." }),
+  }).max(startOfTomorrow(), { message: "Date cannot be in the future." }),
   size: z.string({ required_error: 'Please select a size.' }),
   otherSize: z.string().optional(),
   pieces: z.coerce.number().min(1, 'Please enter the number of pieces.'),
@@ -154,7 +154,7 @@ export function SalesEntryForm() {
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) => date > new Date() || date < new Date('1900-01-01')}
+                      disabled={(date) => date > new Date()}
                       initialFocus
                     />
                   </PopoverContent>
