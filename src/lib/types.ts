@@ -22,4 +22,14 @@ export type SalesEntry = {
   createdAt: any; // Firestore ServerTimestamp
 }
 
-    
+export type UserProfile = {
+    id: string;
+    email: string;
+    roleId: string;
+};
+
+export type Role = {
+    id: string;
+    name: string;
+    permissions: string[];
+};
