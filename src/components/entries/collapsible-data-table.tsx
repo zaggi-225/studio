@@ -328,9 +328,8 @@ const DateGroupRow = ({
   const groupTotalPieces = transactions.reduce((sum, t) => sum + (t.pieces || 0), 0);
 
   return (
-    <>
-      <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
-        <>
+    <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
+        <React.Fragment>
           <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
             <TableCell>
               <CollapsibleTrigger asChild>
@@ -351,7 +350,6 @@ const DateGroupRow = ({
           </TableRow>
 
           <CollapsibleContent asChild>
-            <>
               {subTable.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} className="bg-muted/50">
                    <TableCell></TableCell>
@@ -362,11 +360,9 @@ const DateGroupRow = ({
                   ))}
                 </TableRow>
               ))}
-            </>
           </CollapsibleContent>
-        </>
+        </React.Fragment>
       </Collapsible>
-    </>
   );
 };
     
