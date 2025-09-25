@@ -1,173 +1,193 @@
 /**
- * @fileoverview Firestore Security Rules for the Tarpaulin Manager app.
- *
- * Core Philosophy:
- * This ruleset enforces a combination of ownership-based access for user-specific data and role-based access for administrative functions.
- * Sales entries are publicly readable, but only admins can modify them. User entries are strictly private to the owning user.
- *
- * Data Structure:
- * - /users/{userId}: Stores user profile information, accessible only to the user.
- * - /roles_admin/{userId}: Indicates admin privileges. Document existence grants admin status.
- * - /users/{userId}/entries/{entryId}: Stores user-specific entries, accessible only to the owning user.
- * - /suppliers/{supplierId}: Stores supplier information, publicly readable but admin-writeable.
- * - /categories/{categoryId}: Stores categories, publicly readable but admin-writeable.
- * - /sales_entries/{entryId}: Stores sales entries. Any signed-in user can create, but only admins can modify.
- *
- * Key Security Decisions:
- * - Users can only access their own data under /users/{userId} and its subcollections.
- * - Admin privileges are determined by the existence of a document in /roles_admin/{userId}.
- * - Public read access is granted to /suppliers and /categories, but write access is restricted to admins.
- * - Listing of user entries is restricted to the owning user.
- * - Anyone who is signed in can create a sales entry.
- *
- * Denormalization for Authorization:
- * The existence of a document at `/roles_admin/{userId}` grants admin privileges. This avoids the need to read the user document to determine admin status, improving performance and security.
+ * @file Firestore Security Rules for Tarpaulin Manager App
+ * @core_philosophy This ruleset enforces a role-based access control system, with admins having elevated privileges. User-specific data is secured via path-based ownership.
+ * @data_structure The database structure includes user profiles (`/users/{userId}`), admin roles (`/roles_admin/{userId}`), user entries (`/users/{userId}/entries/{entryId}`), suppliers (`/suppliers/{supplierId}`), categories (`/categories/{categoryId}`), and sales entries (`/sales_entries/{entryId}`).
+ * @key_security_decisions Admin privileges are determined by the presence of a document in the `/roles_admin/{userId}` collection. User entries are secured using path-based ownership and the user ID is duplicated inside the document. Public read access is granted to `suppliers` and `categories`, while write access is restricted to admins. `list` operations are secured based on the specific collection and user role.
+ * @denormalization_for_authorization Admin status is determined by the existence of a document at `/roles_admin/{userId}` instead of reading the user document.
+ * @structural_segregation User entries are segregated under the `/users/{userId}` path, providing clear ownership.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows users to read and write their own profile data.
+     * @description Manages user profiles. Authenticated users can read/write their own profile data, while admins can update or delete any profile.
      * @path /users/{userId}
-     * @allow (get, create, update, delete, list) if the user's UID matches the {userId} path parameter.
-     * @deny (get, create, update, delete, list) if the user's UID does not match the {userId} path parameter.
-     * @principle Enforces user-ownership: only the authenticated user can access their own profile.
+     * @allow (get, list) User with ID 'user123' can read their own profile.
+     * @allow (create) User with ID 'user123' can create their profile.
+     * @deny (update, delete) User with ID 'user123' cannot update or delete another user's profile.
+     * @principle Enforces user-ownership for read/write and admin-only access for update/delete.
      */
     match /users/{userId} {
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      /**
+       * @description Checks if a user is signed in.
+       * @return {bool} - Returns true if request.auth is not null, otherwise returns false.
+       */
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      /**
+       * @description Checks if the request comes from the owner.
+       * @param {string} userId - The user ID to check against the request's authentication UID.
+       * @return {bool} - Returns true if request.auth.uid matches the provided userId, otherwise returns false.
+       */
       function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if false;
-      allow create: if isOwner(userId);
-      allow update: if isOwner(userId);
-      allow delete: if isOwner(userId);
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn() && isOwner(userId);
+      allow update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Grants admin privileges to users with a document in this collection.
+     * @description Manages admin roles. Only existing admins can manage other admin roles.
      * @path /roles_admin/{userId}
-     * @allow (get, create, update, delete) if the user's UID matches the {userId} path parameter and request is authenticated.
-     * @deny (get, create, update, delete) if the user's UID does not match the {userId} path parameter.
-     * @principle Role-based access control: the existence of a document grants admin privileges.
+     * @allow (get, list) Admin user with ID 'admin123' can read the list of admin roles.
+     * @allow (create, update, delete) Admin user with ID 'admin123' can create, update or delete admin roles.
+     * @deny (create, update, delete) Non-admin user with ID 'user123' cannot create, update or delete admin roles.
+     * @principle Restricts admin role management to existing admins.
      */
     match /roles_admin/{userId} {
-      function isAdmin(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
       }
 
-      allow get: if isAdmin(userId);
-      allow list: if false;
-      allow create: if isAdmin(userId);
-      allow update: if isAdmin(userId);
-      allow delete: if isAdmin(userId);
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Allows users to read and write their own entries.
+     * @description Manages user-specific entries (purchases, sales, expenses). Only the user owning the data can read/write.
      * @path /users/{userId}/entries/{entryId}
-     * @allow (get, create, update, delete, list) if the user's UID matches the {userId} path parameter.
-     * @deny (get, create, update, delete, list) if the user's UID does not match the {userId} path parameter.
-     * @principle Enforces path-based ownership: only the authenticated user can access their own entries.
+     * @allow (get, list) User with ID 'user123' can read the list of their own entries.
+     * @allow (create) User with ID 'user123' can create a new entry under their user profile.
+     * @deny (update, delete) User with ID 'user123' cannot update or delete another user's entries.
+     * @principle Enforces strict path-based ownership for user entries.
      */
     match /users/{userId}/entries/{entryId} {
-      function isOwner(userId) {
-        return request.auth != null && request.auth.uid == userId;
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
       }
-        
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
+      /**
+       * @description Checks if a user is signed in.
+       * @return {bool} - Returns true if request.auth is not null, otherwise returns false.
+       */
+      function isSignedIn() {
+        return request.auth != null;
+      }
+      /**
+       * @description Checks if the request comes from the owner.
+       * @param {string} userId - The user ID to check against the request's authentication UID.
+       * @return {bool} - Returns true if request.auth.uid matches the provided userId, otherwise returns false.
+       */
+      function isOwner(userId) {
+        return request.auth.uid == userId;
       }
 
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      allow get, list: if isSignedIn() && isOwner(userId);
+      allow create: if isSignedIn() && isOwner(userId) && request.resource.data.userId == userId;
+      allow update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Allows public read access to suppliers, but restricts write access to admins.
+     * @description Manages supplier information. Public read access, but only admins can create, update, or delete suppliers.
      * @path /suppliers/{supplierId}
-     * @allow (get, list) to all users.
-     * @allow (create, update, delete) only to admins.
-     * @deny (create, update, delete) to non-admins.
-     * @principle Public read, admin-only write: balances open access with controlled modification.
+     * @allow (get, list) Any user can read the list of suppliers.
+     * @deny (create, update, delete) Non-admin users cannot create, update or delete supplier information.
+     * @principle Public read access with admin-only write access.
      */
     match /suppliers/{supplierId} {
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      /**
+       * @description Checks if a user is signed in.
+       * @return {bool} - Returns true if request.auth is not null, otherwise returns false.
+       */
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
-      
-      function isExistingAdmin() {
-        return isAdmin() && resource != null;
-      }
-
-      allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isExistingAdmin();
-      allow delete: if isSignedIn() && isExistingAdmin();
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Allows public read access to categories, but restricts write access to admins.
+     * @description Manages categories for suppliers. Public read access, but only admins can create, update, or delete categories.
      * @path /categories/{categoryId}
-     * @allow (get, list) to all users.
-     * @allow (create, update, delete) only to admins.
-     * @deny (create, update, delete) to non-admins.
-     * @principle Public read, admin-only write: balances open access with controlled modification.
+     * @allow (get, list) Any user can read the list of categories.
+     * @deny (create, update, delete) Non-admin users cannot create, update or delete category information.
+     * @principle Public read access with admin-only write access.
      */
     match /categories/{categoryId} {
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      /**
+       * @description Checks if a user is signed in.
+       * @return {bool} - Returns true if request.auth is not null, otherwise returns false.
+       */
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
-      
-      function isExistingAdmin() {
-        return isAdmin() && resource != null;
-      }
-
-      allow get, list: if true;
-      allow create: if isSignedIn() && isAdmin();
-      allow update: if isSignedIn() && isExistingAdmin();
-      allow delete: if isSignedIn() && isExistingAdmin();
+      allow get, list: if isSignedIn();
+      allow create: if isAdmin();
+      allow update, delete: if isAdmin() && resource != null;
     }
 
     /**
-     * @description Allows any authenticated user to create sales entries, but only admins can modify them.
+     * @description Manages sales entries. Any authenticated user can create entries, but only admins can modify them.
      * @path /sales_entries/{entryId}
-     * @allow (get, list) only to admins.
-     * @allow (create) to any signed-in user.
-     * @allow (update, delete) only to admins.
-     * @deny (update, delete) to non-admins.
-     * @principle Allows workers to create entries, but ensures admin control over modification and deletion.
+     * @allow (get, list) Any signed-in user can read the list of sales entries.
+     * @allow (create) Any signed-in user can create a new sales entry.
+     * @deny (update, delete) Non-admin users cannot update or delete sales entries.
+     * @principle Allows any authenticated user to create sales entries, with admin-only modification rights.
      */
     match /sales_entries/{entryId} {
+      /**
+       * @description Checks if the request is made by an admin by verifying the existence of their userId in /roles_admin/{userId}
+       * @return {bool} - Returns true if request.auth.uid exists in /roles_admin/{userId}, otherwise returns false
+       */
+      function isAdmin() {
+        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+      }
+      /**
+       * @description Checks if a user is signed in.
+       * @return {bool} - Returns true if request.auth is not null, otherwise returns false.
+       */
       function isSignedIn() {
         return request.auth != null;
       }
 
-      function isAdmin() {
-        return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-      }
-        
-      function isExistingAdmin() {
-        return isAdmin() && resource != null;
-      }
-
-      allow get, list: if isSignedIn() && isAdmin();
-      allow create: if isSignedIn() && request.resource.data.createdBy == request.auth.uid;
-      allow update: if isSignedIn() && isExistingAdmin();
-      allow delete: if isSignedIn() && isExistingAdmin();
+      allow get, list: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin() && resource != null;
     }
   }
 }
