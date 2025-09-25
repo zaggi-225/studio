@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import type { ColumnDef } from '@tanstack/react-table';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import type { Transaction } from '@/lib/types';
 import { DataTableRowActions } from './data-table-row-actions';
 
-const typeToEmojiMap = {
+const typeToEmojiMap: {[key: string]: string} = {
   sale: '💰',
   purchase: '🛒',
   expense: '💸',
@@ -78,9 +78,9 @@ export const columns: ColumnDef<Transaction>[] = [
     header: () => <div className="text-right">Amount</div>,
     cell: ({ row }) => {
       const amount = parseFloat(row.getValue('amount'));
-      const formatted = new Intl.NumberFormat('en-US', {
+      const formatted = new Intl.NumberFormat('en-IN', {
         style: 'currency',
-        currency: 'USD',
+        currency: 'INR',
       }).format(amount);
       const type = row.getValue('type');
       const textColor = type === 'sale' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';

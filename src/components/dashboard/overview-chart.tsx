@@ -2,14 +2,19 @@
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { mockTransactions } from '@/lib/data';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/lib/types';
+import { useMemo } from 'react';
 
-const processChartData = () => {
+const processChartData = (transactions: Transaction[] | null) => {
   const data: { [key: string]: { sales: number; expenses: number } } = {};
+  if (!transactions) return [];
+
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
-  mockTransactions.forEach((t) => {
+  transactions.forEach((t) => {
     const transactionDate = new Date(t.date);
     if (transactionDate >= sixMonthsAgo) {
       const month = transactionDate.toLocaleString('default', { month: 'short' });
@@ -38,11 +43,23 @@ const processChartData = () => {
 };
 
 export function OverviewChart() {
-  const chartData = processChartData();
+  const { firestore } = useFirebase();
+  const transactionsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'transactions') : null),
+    [firestore]
+  );
+  const { data: transactions } = useCollection<Transaction>(transactionsRef);
+
+  const chartData = useMemo(() => processChartData(transactions), [transactions]);
   
   const formatCurrency = (value: number) => {
-    if (value > 1000) return `$${(value / 1000).toFixed(1)}k`;
-    return `$${value}`;
+    const formatter = new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0,
+    });
+    if (value > 1000) return `${formatter.format(value / 1000)}k`;
+    return formatter.format(value);
   }
 
   return (
@@ -68,6 +85,7 @@ export function OverviewChart() {
                     borderColor: "hsl(var(--border))",
                     borderRadius: "var(--radius)",
                 }}
+                 formatter={(value: number) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value)}
             />
             <Legend wrapperStyle={{ fontSize: '0.8rem' }} />
             <Bar dataKey="sales" fill="hsl(var(--chart-1))" name="Sales" radius={[4, 4, 0, 0]} />

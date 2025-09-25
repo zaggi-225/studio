@@ -1,20 +1,40 @@
-import { mockTransactions } from '@/lib/data';
+'use client';
+import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Transaction } from '@/lib/types';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DollarSign, Package, TrendingDown, TrendingUp } from 'lucide-react';
+import { DollarSign, TrendingDown, TrendingUp } from 'lucide-react';
+import { useMemo } from 'react';
+import { Skeleton } from '../ui/skeleton';
 
 export function StatsCards() {
-  const totalSales = mockTransactions
-    .filter((t) => t.type === 'sale')
-    .reduce((acc, t) => acc + t.amount, 0);
-  const totalExpenses = mockTransactions
-    .filter((t) => t.type === 'expense' || t.type === 'purchase')
-    .reduce((acc, t) => acc + t.amount, 0);
-  const profit = totalSales - totalExpenses;
+  const { firestore } = useFirebase();
+  const transactionsRef = useMemoFirebase(
+    () => (firestore ? collection(firestore, 'transactions') : null),
+    [firestore]
+  );
+  const { data: transactions, isLoading } = useCollection<Transaction>(transactionsRef);
+
+  const stats = useMemo(() => {
+    if (!transactions) return { totalSales: 0, totalExpenses: 0, profit: 0 };
+    
+    const totalSales = transactions
+      .filter((t) => t.type === 'sale')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const totalExpenses = transactions
+      .filter((t) => t.type === 'expense' || t.type === 'purchase')
+      .reduce((acc, t) => acc + t.amount, 0);
+    const profit = totalSales - totalExpenses;
+
+    return { totalSales, totalExpenses, profit };
+  }, [transactions]);
+
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'INR',
     }).format(amount);
   };
 
@@ -26,7 +46,7 @@ export function StatsCards() {
           <TrendingUp className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalSales)}</div>
+          {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.totalSales)}</div>}
           <p className="text-xs text-muted-foreground">+20.1% from last month</p>
         </CardContent>
       </Card>
@@ -36,7 +56,7 @@ export function StatsCards() {
           <TrendingDown className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
+           {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.totalExpenses)}</div>}
           <p className="text-xs text-muted-foreground">+18.1% from last month</p>
         </CardContent>
       </Card>
@@ -46,7 +66,7 @@ export function StatsCards() {
           <DollarSign className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{formatCurrency(profit)}</div>
+           {isLoading ? <Skeleton className="h-8 w-3/4" /> : <div className="text-2xl font-bold">{formatCurrency(stats.profit)}</div>}
           <p className="text-xs text-muted-foreground">+19% from last month</p>
         </CardContent>
       </Card>
