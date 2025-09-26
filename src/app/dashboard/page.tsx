@@ -6,6 +6,9 @@ import { RecentTransactions } from "@/components/dashboard/recent-transactions";
 import { useRole } from "@/hooks/use-role";
 import { NotAuthorized } from "@/components/not-authorized";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
 export default function DashboardPage() {
     const { isAdmin, isLoading } = useRole();
@@ -37,6 +40,25 @@ export default function DashboardPage() {
                 <OverviewChart />
                 <RecentTransactions />
             </div>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Download Android App</CardTitle>
+                    <CardDescription>
+                        Download the latest version of the Tarpaulin Manager Android app.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <a href="/app-release.apk" download>
+                        <Button className="w-full sm:w-auto">
+                            <Download className="mr-2 h-4 w-4" />
+                            Download APK
+                        </Button>
+                    </a>
+                    <p className="text-xs text-muted-foreground mt-2">
+                        Note: You may need to enable "Install from unknown sources" in your Android settings.
+                    </p>
+                </CardContent>
+            </Card>
         </div>
     )
 }

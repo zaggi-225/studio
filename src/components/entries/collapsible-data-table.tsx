@@ -10,6 +10,7 @@ import {
   ColumnFiltersState,
   getFacetedRowModel,
   getFacetedUniqueValues,
+  getSortedRowModel,
   SortingState
 } from '@tanstack/react-table';
 import {
