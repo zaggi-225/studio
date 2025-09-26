@@ -3,41 +3,41 @@
 import { firebaseConfig } from '@/firebase/config';
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+
+let firestoreInstance: Firestore | null = null;
 
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
-export function initializeFirebase() {
-  let firebaseApp;
-  if (!getApps().length) {
-    try {
-      firebaseApp = initializeApp();
-    } catch (e) {
-      if (process.env.NODE_ENV === "production") {
-        console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-      }
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-  } else {
-    firebaseApp = getApp();
+export function initializeFirebaseApp(): FirebaseApp {
+  if (getApps().length) {
+    return getApp();
   }
-
-  const firestore = getFirestore(firebaseApp);
-  enableIndexedDbPersistence(firestore).catch((err) => {
-    if (err.code == 'failed-precondition') {
-      console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code == 'unimplemented') {
-      console.log('The current browser does not support all of the features required to enable persistence.');
+  try {
+    return initializeApp();
+  } catch (e) {
+    if (process.env.NODE_ENV === "production") {
+      console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
     }
-  });
-
-  return getSdks(firebaseApp);
+    return initializeApp(firebaseConfig);
+  }
 }
 
-export function getSdks(firebaseApp: FirebaseApp) {
+export function getFirebaseServices(app: FirebaseApp) {
+  if (!firestoreInstance) {
+    firestoreInstance = getFirestore(app);
+    enableIndexedDbPersistence(firestoreInstance).catch((err) => {
+      if (err.code == 'failed-precondition') {
+        console.log('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+      } else if (err.code == 'unimplemented') {
+        console.log('The current browser does not support all of the features required to enable persistence.');
+      }
+    });
+  }
+
   return {
-    firebaseApp,
-    auth: getAuth(firebaseApp),
-    firestore: getFirestore(firebaseApp)
+    firebaseApp: app,
+    auth: getAuth(app),
+    firestore: firestoreInstance
   };
 }
 
