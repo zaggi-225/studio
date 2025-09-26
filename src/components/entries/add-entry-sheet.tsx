@@ -94,7 +94,7 @@ export function AddEntrySheet() {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+        <Button className="bg-accent text-accent-foreground hover:bg-accent/90 w-full sm:w-auto">
           <PlusCircle className="mr-2 h-4 w-4" />
           Add Transaction
         </Button>
@@ -238,7 +238,7 @@ export function AddEntrySheet() {
               )}
             />
             <SheetFooter>
-              <Button type="submit" disabled={form.formState.isSubmitting} className='bg-primary hover:bg-primary/90'>
+              <Button type="submit" disabled={form.formState.isSubmitting} className='bg-primary hover:bg-primary/90 w-full'>
                 {form.formState.isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Save transaction
               </Button>

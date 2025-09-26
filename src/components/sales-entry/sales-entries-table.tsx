@@ -40,7 +40,7 @@ const columns: ColumnDef<SalesEntry>[] = [
     header: '📅 Date',
     cell: ({ row }) => {
       const date = row.getValue('date') as Date;
-      return <div>{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>;
+      return <div className="whitespace-nowrap">{date ? new Date(date).toLocaleDateString() : 'N/A'}</div>;
     },
   },
   {
@@ -60,7 +60,7 @@ const columns: ColumnDef<SalesEntry>[] = [
         style: 'currency',
         currency: 'INR',
       }).format(amount);
-      return <div className="text-right font-medium">{formatted}</div>;
+      return <div className="text-right font-medium whitespace-nowrap">{formatted}</div>;
     },
   },
   {
@@ -248,40 +248,42 @@ export function SalesEntriesTable() {
   return (
     <Card>
       <CardHeader>
-        <div className="flex justify-between items-center">
-            <div>
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+            <div className="flex-1">
                 <CardTitle>Past Sales Entries</CardTitle>
                 <CardDescription>A record of all sales submitted.</CardDescription>
             </div>
-            <Button onClick={handleManualSync} disabled={isSyncing}>
+            <Button onClick={handleManualSync} disabled={isSyncing} className="w-full sm:w-auto">
                 <RefreshCw className={cn("mr-2 h-4 w-4", isSyncing && "animate-spin")} />
                 {isSyncing ? 'Syncing...' : 'Sync Today\'s Sales'}
             </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-2 flex-wrap">
-            {table.getColumn("branch") && (
-                <DataTableFacetedFilter
-                    column={table.getColumn("branch")}
-                    title="Branch"
-                    options={BRANCHES}
-                />
-            )}
-             {table.getColumn("size") && (
-                <DataTableFacetedFilter
-                    column={table.getColumn("size")}
-                    title="Size"
-                    options={SIZES}
-                />
-            )}
+        <div className="flex flex-col sm:flex-row items-center gap-2 flex-wrap">
+            <div className="flex gap-2 flex-wrap">
+              {table.getColumn("branch") && (
+                  <DataTableFacetedFilter
+                      column={table.getColumn("branch")}
+                      title="Branch"
+                      options={BRANCHES}
+                  />
+              )}
+              {table.getColumn("size") && (
+                  <DataTableFacetedFilter
+                      column={table.getColumn("size")}
+                      title="Size"
+                      options={SIZES}
+                  />
+              )}
+            </div>
              <Popover>
               <PopoverTrigger asChild>
                 <Button
                   id="date"
                   variant={'outline'}
                   className={cn(
-                    'w-full md:w-[300px] justify-start text-left font-normal',
+                    'w-full md:w-auto justify-start text-left font-normal',
                     !date && 'text-muted-foreground'
                   )}
                 >
@@ -326,7 +328,7 @@ export function SalesEntriesTable() {
                 <TableRow key={headerGroup.id}>
                   {headerGroup.headers.map((header) => {
                     return (
-                      <TableHead key={header.id}>
+                      <TableHead key={header.id} className="px-2 md:px-4">
                         {header.isPlaceholder
                           ? null
                           : flexRender(header.column.columnDef.header, header.getContext())}
@@ -340,7 +342,7 @@ export function SalesEntriesTable() {
               {isLoading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
-                        <TableCell colSpan={columns.length}>
+                        <TableCell colSpan={columns.length} className="p-2 md:p-4">
                             <Skeleton className="h-8 w-full" />
                         </TableCell>
                     </TableRow>
@@ -355,7 +357,7 @@ export function SalesEntriesTable() {
                     )}
                   >
                     {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
+                      <TableCell key={cell.id} className="p-2 md:p-4">
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
@@ -371,9 +373,9 @@ export function SalesEntriesTable() {
             </TableBody>
             <TableFooter>
                 <TableRow>
-                    <TableCell colSpan={2} className="font-bold">Totals</TableCell>
-                    <TableCell className="font-bold">{totalPieces}</TableCell>
-                    <TableCell className="text-right font-bold">
+                    <TableCell colSpan={2} className="font-bold text-sm md:text-base px-2 md:px-4">Totals</TableCell>
+                    <TableCell className="font-bold text-sm md:text-base px-2 md:px-4">{totalPieces}</TableCell>
+                    <TableCell className="text-right font-bold text-sm md:text-base px-2 md:px-4 whitespace-nowrap">
                         {new Intl.NumberFormat('en-IN', {
                             style: 'currency',
                             currency: 'INR',
@@ -384,8 +386,8 @@ export function SalesEntriesTable() {
             </TableFooter>
           </Table>
         </div>
-        <div className="flex items-center justify-end space-x-2 py-4">
-          <div className="flex-1 text-sm text-muted-foreground">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-4">
+          <div className="text-sm text-muted-foreground">
             {table.getFilteredRowModel().rows.length} row(s).
           </div>
           <div className="space-x-2">
@@ -411,5 +413,3 @@ export function SalesEntriesTable() {
     </Card>
   );
 }
-
-    

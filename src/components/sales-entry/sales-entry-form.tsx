@@ -116,16 +116,20 @@ export function SalesEntryForm() {
     }
   }
 
+  const formLabelClass = "text-base md:text-lg flex items-center gap-2";
+  const formElementHeight = "h-12 md:h-14 text-base";
+
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 md:space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8">
           <FormField
             control={form.control}
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-lg flex items-center gap-2 mb-2">
+                <FormLabel className={cn(formLabelClass, "mb-1")}>
                     <span>📅</span> Date
                 </FormLabel>
                 <Popover>
@@ -134,7 +138,8 @@ export function SalesEntryForm() {
                       <Button
                         variant={'outline'}
                         className={cn(
-                          'w-full pl-3 text-left font-normal h-14 text-lg',
+                          'w-full pl-3 text-left font-normal',
+                           formElementHeight,
                           !field.value && 'text-muted-foreground'
                         )}
                       >
@@ -163,18 +168,18 @@ export function SalesEntryForm() {
             name="branch"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-lg flex items-center gap-2">
+                <FormLabel className={formLabelClass}>
                     <span>🏬</span> Branch
                 </FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-14 text-lg">
+                    <SelectTrigger className={formElementHeight}>
                       <SelectValue placeholder="Select a branch" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Nidagundi" className="text-lg">Nidagundi</SelectItem>
-                    <SelectItem value="Basavana Bagewadi" className="text-lg">Basavana Bagewadi</SelectItem>
+                    <SelectItem value="Nidagundi" className="text-base">Nidagundi</SelectItem>
+                    <SelectItem value="Basavana Bagewadi" className="text-base">Basavana Bagewadi</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -187,17 +192,17 @@ export function SalesEntryForm() {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-lg flex items-center gap-2">🧑‍💼 Name</FormLabel>
+                  <FormLabel className={formLabelClass}>🧑‍💼 Name</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="h-14 text-lg">
+                      <SelectTrigger className={formElementHeight}>
                         <SelectValue placeholder="Select a name" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="M.R Bijapur">M.R Bijapur</SelectItem>
-                      <SelectItem value="Jaggu">Jaggu</SelectItem>
-                      <SelectItem value="Pavitra">Pavitra</SelectItem>
+                      <SelectItem value="M.R Bijapur" className="text-base">M.R Bijapur</SelectItem>
+                      <SelectItem value="Jaggu" className="text-base">Jaggu</SelectItem>
+                      <SelectItem value="Pavitra" className="text-base">Pavitra</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -210,20 +215,20 @@ export function SalesEntryForm() {
             name="size"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-lg flex items-center gap-2">
+                <FormLabel className={formLabelClass}>
                     <span>📐</span> Size
                 </FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value}>
                   <FormControl>
-                    <SelectTrigger className="h-14 text-lg">
+                    <SelectTrigger className={formElementHeight}>
                       <SelectValue placeholder="Select a size" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="18x24" className="text-lg">18 x 24</SelectItem>
-                    <SelectItem value="24x30" className="text-lg">24 x 30</SelectItem>
-                    <SelectItem value="30x40" className="text-lg">30 x 40</SelectItem>
-                    <SelectItem value="other" className="text-lg">Other</SelectItem>
+                    <SelectItem value="18x24" className="text-base">18 x 24</SelectItem>
+                    <SelectItem value="24x30" className="text-base">24 x 30</SelectItem>
+                    <SelectItem value="30x40" className="text-base">30 x 40</SelectItem>
+                    <SelectItem value="other" className="text-base">Other</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -237,9 +242,9 @@ export function SalesEntryForm() {
               name="otherSize"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-lg">Specify Size</FormLabel>
+                  <FormLabel className={formLabelClass}>Specify Size</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., 50x60" {...field} className="h-14 text-lg" />
+                    <Input placeholder="e.g., 50x60" {...field} className={formElementHeight} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -252,11 +257,11 @@ export function SalesEntryForm() {
             name="pieces"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-lg flex items-center gap-2">
+                <FormLabel className={formLabelClass}>
                     <span>🔢</span> No. of Pieces
                 </FormLabel>
                 <FormControl>
-                  <Input type="number" placeholder="0" {...field} className="h-14 text-lg" />
+                  <Input type="number" placeholder="0" {...field} className={formElementHeight} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -269,11 +274,11 @@ export function SalesEntryForm() {
                 name="amount"
                 render={({ field }) => (
                 <FormItem>
-                    <FormLabel className="text-lg flex items-center gap-2">
+                    <FormLabel className={formLabelClass}>
                         <span>💰</span> Amount
                     </FormLabel>
                     <FormControl>
-                    <Input type="number" placeholder="0.00" {...field} className="h-14 text-lg" />
+                    <Input type="number" placeholder="0.00" {...field} className={formElementHeight} />
                     </FormControl>
                     <FormMessage />
                 </FormItem>
@@ -283,16 +288,14 @@ export function SalesEntryForm() {
 
         </div>
 
-        <Button type="submit" className="w-full h-16 text-xl bg-accent text-accent-foreground hover:bg-accent/90" disabled={isLoading}>
+        <Button type="submit" className="w-full h-14 md:h-16 text-lg md:text-xl bg-accent text-accent-foreground hover:bg-accent/90" disabled={isLoading}>
           {isLoading ? (
             <Loader2 className="mr-2 h-6 w-6 animate-spin" />
           ) : (
-            <span className="flex items-center gap-2">✅ Save Entry</span>
+            <span className="flex items-center justify-center gap-2">✅ Save Entry</span>
           )}
         </Button>
       </form>
     </Form>
   );
 }
-
-    

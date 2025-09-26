@@ -31,8 +31,8 @@ export default function EntriesPage() {
 
   if (isLoading) {
     return (
-        <div className="container mx-auto py-10">
-          <div className="flex justify-between items-center mb-6">
+        <div className="container mx-auto py-6 md:py-10">
+          <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
             <div>
               <Skeleton className="h-9 w-64 mb-2" />
               <Skeleton className="h-5 w-80" />
@@ -52,11 +52,11 @@ export default function EntriesPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-3xl font-bold font-headline">All Entries</h1>
-          <p className="text-muted-foreground">
+    <div className="container mx-auto py-6 md:py-10">
+      <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 gap-4">
+        <div className="flex-1">
+          <h1 className="text-2xl md:text-3xl font-bold font-headline">All Entries</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
             View and manage all your business transactions.
           </p>
         </div>
