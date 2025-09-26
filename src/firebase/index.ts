@@ -7,19 +7,12 @@ import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/fi
 
 let firestoreInstance: Firestore | null = null;
 
-// IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebaseApp(): FirebaseApp {
   if (getApps().length) {
     return getApp();
   }
-  try {
-    return initializeApp();
-  } catch (e) {
-    if (process.env.NODE_ENV === "production") {
-      console.warn('Automatic initialization failed. Falling back to firebase config object.', e);
-    }
-    return initializeApp(firebaseConfig);
-  }
+  // Always initialize with the config to avoid issues in non-Firebase hosting environments.
+  return initializeApp(firebaseConfig);
 }
 
 export function getFirebaseServices(app: FirebaseApp) {
