@@ -257,7 +257,6 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
             {Object.entries(groupedData).length > 0 ? (
               Object.entries(groupedData).map(([date, rows]) => (
                 <DateGroupRow
@@ -265,16 +264,18 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
                   date={date}
                   rows={rows}
                   columns={columns}
+                  table={table}
                 />
               ))
             ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length + 1} className="h-24 text-center">
-                  No results.
-                </TableCell>
-              </TableRow>
+              <TableBody>
+                <TableRow>
+                  <TableCell colSpan={columns.length + 1} className="h-24 text-center">
+                    No results.
+                  </TableCell>
+                </TableRow>
+              </TableBody>
             )}
-          </TableBody>
            <TableFooter>
                 <TableRow>
                     <TableCell colSpan={columns.findIndex(c => c.accessorKey === 'pieces') + 2} className="text-right font-bold">Total</TableCell>
@@ -322,10 +323,12 @@ const DateGroupRow = ({
   date,
   rows,
   columns,
+  table,
 }: {
   date: string;
   rows: any[];
   columns: ColumnDef<Transaction>[];
+  table: any;
 }) => {
   const [isOpen, setIsOpen] = React.useState(isToday(new Date(date)));
   
@@ -335,7 +338,7 @@ const DateGroupRow = ({
 
   return (
     <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
-      <>
+       <tbody data-state={table.getIsAllRowsSelected() ? 'selected' : 'unselected'}>
         <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
           <TableCell className="px-2 md:px-4">
             <CollapsibleTrigger asChild>
@@ -366,7 +369,9 @@ const DateGroupRow = ({
               </TableRow>
           </CollapsibleContent>
         ))}
-      </>
+       </tbody>
     </Collapsible>
   );
 };
+
+    
