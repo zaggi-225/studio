@@ -8,7 +8,8 @@ import { NotAuthorized } from "@/components/not-authorized";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, AlertTriangle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 export default function DashboardPage() {
     const { isAdmin, isLoading } = useRole();
@@ -48,6 +49,13 @@ export default function DashboardPage() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
+                    <Alert variant="destructive" className="mb-4">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Developer Note</AlertTitle>
+                        <AlertDescription>
+                           The file `public/app-release.apk` is a placeholder. You must replace it with a real APK generated from Android Studio. Otherwise, users will get a "problem parsing the package" error on installation.
+                        </AlertDescription>
+                    </Alert>
                     <a href="/app-release.apk" download>
                         <Button className="w-full sm:w-auto">
                             <Download className="mr-2 h-4 w-4" />
