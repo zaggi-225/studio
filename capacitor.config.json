@@ -3,7 +3,6 @@
   "appName": "Studio Tarp App",
   "webDir": "out",
   "server": {
-    "url": "https://studio-one-coral.vercel.app/",
-    "cleartext": true
+    "androidScheme": "https"
   }
 }
