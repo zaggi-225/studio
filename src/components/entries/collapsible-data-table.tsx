@@ -54,9 +54,7 @@ const typeToVariantMap: { [key: string]: 'default' | 'secondary' | 'destructive'
 export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: 'date', desc: true },
-  ]);
+  const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const columns: ColumnDef<Transaction>[] = [
     {
@@ -337,7 +335,7 @@ const DateGroupRow = ({
 
   return (
     <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
-      <React.Fragment>
+      <>
         <TableRow className={cn("border-b-2 font-semibold", isToday(new Date(date)) && "bg-green-100/50 dark:bg-green-900/10")}>
           <TableCell className="px-2 md:px-4">
             <CollapsibleTrigger asChild>
@@ -356,7 +354,7 @@ const DateGroupRow = ({
           </TableCell>
           <TableCell className="px-2 md:px-4"></TableCell>
         </TableRow>
-        {rows.map((row) => (
+        {rows.map((row: any) => (
           <CollapsibleContent asChild key={row.id}>
               <TableRow data-state={row.getIsSelected() && 'selected'} className="bg-muted/50">
                 <TableCell className="px-2 md:px-4"></TableCell>
@@ -368,7 +366,7 @@ const DateGroupRow = ({
               </TableRow>
           </CollapsibleContent>
         ))}
-      </React.Fragment>
+      </>
     </Collapsible>
   );
 };
