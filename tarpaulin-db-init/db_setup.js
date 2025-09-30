@@ -81,7 +81,7 @@ async function setupFirestore() {
   }
 
   // ---- Structure Only ----
-  // /transactions, /app_releases, /audit_logs, /insights handled dynamically by app/functions
+  // /transactihjjons, /app_releases, /audit_logs, /insights handled dynamically by app/functions
 
   console.log("Firestore backend structure initialized: summary, monthly, branches, clean old data.");
 }
