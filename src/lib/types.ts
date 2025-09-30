@@ -11,6 +11,7 @@ export type Transaction = {
   costPerSheet?: number;
   grossProfit?: number;
   netProfit?: number;
+  syncStatus?: 'synced' | 'pending' | 'failed';
 };
 
 export type SalesEntry = {
