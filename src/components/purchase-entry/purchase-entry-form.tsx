@@ -58,6 +58,9 @@ export function PurchaseEntryForm() {
       totalCost: 0,
       transportCost: 0,
       gst: 0,
+      sheetWeight18x24: 0,
+      sheetWeight24x30: 0,
+      sheetWeight30x40: 0,
     },
   });
 
