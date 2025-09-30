@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { Menu, Search, User, Home, PlusSquare, ShoppingCart, FileText, Settings } from 'lucide-react';
+import { Menu, Search, User, Home, PlusSquare, ShoppingCart, FileText, Settings, PackagePlus } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ import { usePathname } from 'next/navigation';
 const allNavItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard', adminOnly: true },
   { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry', adminOnly: false },
+  { href: '/dashboard/purchase-entry', icon: PackagePlus, label: 'Purchase Entry', adminOnly: true },
   { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', adminOnly: true },
   { href: '/dashboard/reports', icon: FileText, label: 'Reports', adminOnly: true },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings', adminOnly: true },

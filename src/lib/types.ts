@@ -22,6 +22,25 @@ export type SalesEntry = {
   createdAt: any; // Firestore ServerTimestamp
 }
 
+export type Purchase = {
+    id: string;
+    date: Date;
+    vendor: string;
+    totalKg: number;
+    totalCost: number;
+    transportCost: number;
+    gst: number;
+    sheetWeights: {
+        '18x24': number;
+        '24x30': number;
+        '30x40': number;
+    };
+    avgCostPerKg: number;
+    billPhoto: string;
+    createdAt: any; // Firestore ServerTimestamp
+    createdBy: string;
+}
+
 export type UserProfile = {
     id: string;
     email: string;

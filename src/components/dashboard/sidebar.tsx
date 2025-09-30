@@ -8,6 +8,7 @@ import {
   FileText,
   Settings,
   PlusSquare,
+  PackagePlus,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { useRole } from '@/hooks/use-role';
 const allNavItems = [
   { href: '/dashboard', icon: Home, label: 'Dashboard', adminOnly: true },
   { href: '/dashboard/sales-entry', icon: PlusSquare, label: 'Sales Entry', adminOnly: false },
+  { href: '/dashboard/purchase-entry', icon: PackagePlus, label: 'Purchase Entry', adminOnly: true },
   { href: '/dashboard/entries', icon: ShoppingCart, label: 'All Entries', adminOnly: true },
   { href: '/dashboard/reports', icon: FileText, label: 'Reports', adminOnly: true },
   { href: '/dashboard/settings', icon: Settings, label: 'Settings', adminOnly: true },
