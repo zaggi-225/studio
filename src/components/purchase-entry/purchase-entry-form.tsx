@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,7 +20,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { format, startOfTomorrow } from 'date-fns';
-import { Calendar as CalendarIcon, Loader2, Upload, Image as ImageIcon, XCircle } from 'lucide-react';
+import { Calendar as CalendarIcon, Loader2, Upload, XCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
@@ -35,7 +36,7 @@ const formSchema = z.object({
   totalCost: z.coerce.number().min(1, 'Total purchase cost is required.'),
   transportCost: z.coerce.number().min(0).optional(),
   gst: z.coerce.number().min(0).optional(),
-  billPhoto: z.any().refine(file => file, 'Bill photo is required.'),
+  billPhoto: z.any().refine(file => file instanceof File, { message: 'Bill photo is required.' }),
   sheetWeight18x24: z.coerce.number().min(0.01, 'Weight is required.'),
   sheetWeight24x30: z.coerce.number().min(0.01, 'Weight is required.'),
   sheetWeight30x40: z.coerce.number().min(0.01, 'Weight is required.'),
@@ -60,7 +61,7 @@ export function PurchaseEntryForm() {
   });
 
   const watchAllFields = useWatch({ control: form.control });
-  const { totalKg, totalCost, transportCost, gst } = watchAllFields;
+  const { totalKg, totalCost, transportCost, gst, sheetWeight18x24, sheetWeight24x30, sheetWeight30x40 } = watchAllFields;
 
   const avgCostPerKg = useMemo(() => {
     const finalTotalKg = totalKg || 0;
@@ -70,6 +71,16 @@ export function PurchaseEntryForm() {
     }
     return 0;
   }, [totalKg, totalCost, transportCost, gst]);
+
+  const estimatedSheets = useMemo(() => {
+    const finalTotalKg = totalKg || 0;
+    return {
+        '18x24': finalTotalKg > 0 && sheetWeight18x24 > 0 ? Math.floor(finalTotalKg / sheetWeight18x24) : 0,
+        '24x30': finalTotalKg > 0 && sheetWeight24x30 > 0 ? Math.floor(finalTotalKg / sheetWeight24x30) : 0,
+        '30x40': finalTotalKg > 0 && sheetWeight30x40 > 0 ? Math.floor(finalTotalKg / sheetWeight30x40) : 0,
+    }
+  }, [totalKg, sheetWeight18x24, sheetWeight24x30, sheetWeight30x40]);
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -116,6 +127,7 @@ export function PurchaseEntryForm() {
                 '24x30': values.sheetWeight24x30,
                 '30x40': values.sheetWeight30x40,
             },
+            estimatedSheets: estimatedSheets,
             avgCostPerKg: avgCostPerKg,
             billPhoto: billPhotoUrl,
             createdAt: serverTimestamp(),
@@ -241,6 +253,7 @@ export function PurchaseEntryForm() {
                         <FormItem>
                             <FormLabel>18x24</FormLabel>
                             <FormControl><Input type="number" placeholder="e.g. 9" {...field} /></FormControl>
+                            <FormDescription className="text-xs">Est. {estimatedSheets['18x24']} sheets</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -248,6 +261,7 @@ export function PurchaseEntryForm() {
                         <FormItem>
                             <FormLabel>24x30</FormLabel>
                             <FormControl><Input type="number" placeholder="e.g. 12" {...field} /></FormControl>
+                             <FormDescription className="text-xs">Est. {estimatedSheets['24x30']} sheets</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )} />
@@ -255,6 +269,7 @@ export function PurchaseEntryForm() {
                         <FormItem>
                             <FormLabel>30x40</FormLabel>
                             <FormControl><Input type="number" placeholder="e.g. 15" {...field} /></FormControl>
+                             <FormDescription className="text-xs">Est. {estimatedSheets['30x40']} sheets</FormDescription>
                             <FormMessage />
                         </FormItem>
                     )} />
