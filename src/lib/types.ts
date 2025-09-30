@@ -1,3 +1,4 @@
+
 export type Transaction = {
   id: string;
   type: 'sale' | 'purchase' | 'expense';
@@ -12,6 +13,9 @@ export type Transaction = {
   grossProfit?: number;
   netProfit?: number;
   syncStatus?: 'synced' | 'pending' | 'failed';
+  createdAt?: any; // Firestore ServerTimestamp
+  workerId?: string;
+  branchId?: string;
 };
 
 export type SalesEntry = {
@@ -24,9 +28,11 @@ export type SalesEntry = {
   name: string;
   createdBy: string;
   createdAt: any; // Firestore ServerTimestamp
-  costPerSheet?: number;
-  grossProfit?: number;
-  netProfit?: number;
+  costPerSheet: number | null;
+  grossProfit: number | null;
+  netProfit: number | null;
+  workerId?: string;
+  branchId?: string;
 }
 
 export type Purchase = {

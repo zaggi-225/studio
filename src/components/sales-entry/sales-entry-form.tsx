@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -84,17 +85,8 @@ export function SalesEntryForm() {
         return;
     }
     
-    // --- Profit Calculation ---
-    // This section is intended to be handled by a backend Cloud Function for reliability.
-    // The function would trigger on create of a new 'sales_entries' document,
-    // perform the lookups and calculations, and then update the document with profit fields.
-    //
-    // Example backend logic:
-    // 1. Fetch avgCostPerKg for the current month from purchase aggregates.
-    // 2. Fetch sheetWeight for the given size from the latest purchase record.
-    // 3. Fetch total monthly overhead from expense aggregates.
-    // 4. Calculate costPerSheet, grossProfit, and netProfit.
-    
+    // This is where the backend Cloud Function will take over.
+    // The client sends the raw sales data, and the backend computes the profit.
     const entryData = {
         date: values.date,
         size: values.size === 'other' ? values.otherSize : values.size,
@@ -104,10 +96,11 @@ export function SalesEntryForm() {
         name: values.name,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
-        // Profit fields will be added by the backend function
+        // These fields will be calculated and added by a Cloud Function.
         costPerSheet: null,
         grossProfit: null,
         netProfit: null,
+        syncStatus: 'pending', // Assume pending until backend confirms
     };
 
     try {
