@@ -1,8 +1,9 @@
+
 'use client';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { Transaction } from '@/lib/types';
-import { isSameMonth, subMonths, isWithinInterval } from 'date-fns';
+import { isSameMonth, subMonths } from 'date-fns';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingDown, TrendingUp, Wallet } from 'lucide-react';
@@ -12,9 +13,6 @@ import { Skeleton } from '../ui/skeleton';
 export function StatsCards() {
   const { firestore } = useFirebase();
   
-  // DEV-NOTE: This hook reads the entire 'transactions' collection for client-side aggregation.
-  // For production, this should be replaced with a hook that reads a single 'aggregates/summary' document
-  // and the last two 'aggregates/monthly/{YYYY-MM}' documents to calculate percentage changes.
   const transactionsRef = useMemoFirebase(
     () => (firestore ? collection(firestore, 'transactions') : null),
     [firestore]
@@ -52,7 +50,7 @@ export function StatsCards() {
 
 
     transactions.forEach((t) => {
-        const tDate = new Date(t.date);
+        const tDate = new Date(t.createdAt as Date);
 
         // Overall totals
         if (t.type === 'sale') {

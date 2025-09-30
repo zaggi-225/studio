@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -38,13 +39,13 @@ export default function ReportsPage() {
 
     const headers = ['ID', 'Date', 'Type', 'Description', 'Category', 'Amount', 'Name', 'Branch', 'Pieces'];
     const filteredData = transactions.filter(t => {
-        const tDate = new Date(t.date);
+        const tDate = new Date(t.createdAt as Date);
         return date?.from && date?.to && tDate >= date.from && tDate <= date.to;
     });
 
     const csvContent = [
       headers.join(','),
-      ...filteredData.map(t => [t.id, t.date, t.type, `"${t.description}"`, t.category, t.amount, t.name, t.branch, t.pieces].join(','))
+      ...filteredData.map(t => [t.id, t.createdAt, t.type, `"${t.description}"`, t.category, t.amount, t.workerId, t.branchId, t.pieces].join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

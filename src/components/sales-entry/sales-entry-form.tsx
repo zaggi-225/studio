@@ -24,7 +24,7 @@ import { format, startOfTomorrow } from 'date-fns';
 import { Calendar as CalendarIcon, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { collection, serverTimestamp } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
@@ -39,8 +39,8 @@ const formSchema = z.object({
   otherSize: z.string().optional(),
   pieces: z.coerce.number().min(1, 'Please enter the number of pieces.'),
   amount: z.coerce.number().min(1, 'Please enter the total amount.'),
-  branch: z.string({ required_error: 'Please select a branch.' }),
-  name: z.string({ required_error: 'Please select a name.' }),
+  branchId: z.string({ required_error: 'Please select a branch.' }),
+  workerId: z.string({ required_error: 'Please select a name.' }),
 }).refine(data => {
     if (data.size === 'other' && !data.otherSize) {
         return false;
@@ -65,8 +65,8 @@ export function SalesEntryForm() {
       otherSize: '',
       pieces: 0,
       amount: 0,
-      branch: '',
-      name: '',
+      branchId: '',
+      workerId: '',
     },
   });
 
@@ -92,15 +92,15 @@ export function SalesEntryForm() {
         size: values.size === 'other' ? values.otherSize : values.size,
         pieces: values.pieces,
         amount: values.amount,
-        branch: values.branch,
-        name: values.name,
+        branchId: values.branchId,
+        workerId: values.workerId,
         createdBy: user.uid,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(), // Consistent timestamp
         // These fields will be calculated and added by a Cloud Function.
         costPerSheet: null,
         grossProfit: null,
         netProfit: null,
-        syncStatus: 'pending', // Assume pending until backend confirms
+        syncStatus: 'pending' as const, // Assume pending until backend confirms
     };
 
     try {
@@ -111,7 +111,7 @@ export function SalesEntryForm() {
             title: '✅ Entry Saved',
             description: 'Your sales entry has been saved successfully.',
         });
-        form.reset({ date: new Date(), size: '', otherSize: '', pieces: 0, amount: 0, branch: '', name: '' });
+        form.reset({ date: new Date(), size: '', otherSize: '', pieces: 0, amount: 0, branchId: '', workerId: '' });
     } catch (error) {
         console.error("Error saving entry:", error);
         toast({
@@ -173,7 +173,7 @@ export function SalesEntryForm() {
 
           <FormField
             control={form.control}
-            name="branch"
+            name="branchId"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className={formLabelClass}>
@@ -186,8 +186,8 @@ export function SalesEntryForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Nidagundi" className="text-base">Nidagundi</SelectItem>
-                    <SelectItem value="Basavana Bagewadi" className="text-base">Basavana Bagewadi</SelectItem>
+                    <SelectItem value="nidagundi" className="text-base">Nidagundi</SelectItem>
+                    <SelectItem value="basavana_bagewadi" className="text-base">Basavana Bagewadi</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -197,7 +197,7 @@ export function SalesEntryForm() {
           
            <FormField
               control={form.control}
-              name="name"
+              name="workerId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className={formLabelClass}>🧑‍💼 Name</FormLabel>

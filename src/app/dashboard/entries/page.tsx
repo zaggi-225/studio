@@ -1,3 +1,4 @@
+
 'use client';
 import { useMemo } from 'react';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
@@ -23,8 +24,8 @@ export default function EntriesPage() {
     if (!transactions) return [];
     return transactions.map(t => ({
       ...t,
-      date: (t.date as any)?.toDate ? (t.date as any).toDate().toISOString() : t.date,
-    })).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      createdAt: (t.createdAt as any)?.toDate ? (t.createdAt as any).toDate().toISOString() : t.createdAt,
+    })).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [transactions]);
   
   const isLoading = isRoleLoading || isTransactionsLoading;

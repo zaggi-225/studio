@@ -1,3 +1,4 @@
+
 'use client';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy, limit } from 'firebase/firestore';
@@ -32,7 +33,7 @@ export function RecentTransactions() {
   
   const transactionsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collection(firestore, 'transactions'), orderBy('date', 'desc'), limit(6));
+    return query(collection(firestore, 'transactions'), orderBy('createdAt', 'desc'), limit(6));
   }, [firestore]);
 
   const { data: recentTransactions, isLoading } = useCollection<Transaction>(transactionsQuery);

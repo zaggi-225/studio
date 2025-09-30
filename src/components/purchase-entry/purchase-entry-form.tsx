@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -24,7 +25,7 @@ import { Calendar as CalendarIcon, Loader2, Upload, XCircle } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import Image from 'next/image';
 
 const formSchema = z.object({
@@ -129,8 +130,8 @@ export function PurchaseEntryForm() {
             },
             estimatedSheets: estimatedSheets,
             avgCostPerKg: avgCostPerKg,
-            billPhoto: billPhotoUrl,
-            createdAt: serverTimestamp(),
+            billPhotoURL: billPhotoUrl,
+            createdAt: new Date(),
             createdBy: user.uid
         };
 

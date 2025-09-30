@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
@@ -15,7 +16,7 @@ const processChartData = (transactions: Transaction[] | null) => {
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
 
   transactions.forEach((t) => {
-    const transactionDate = new Date(t.date);
+    const transactionDate = new Date(t.createdAt as Date);
     if (transactionDate >= sixMonthsAgo) {
       const month = transactionDate.toLocaleString('default', { month: 'short' });
       if (!data[month]) {

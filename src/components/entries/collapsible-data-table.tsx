@@ -1,3 +1,4 @@
+
 'use client';
 import * as React from 'react';
 import {
@@ -79,7 +80,7 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
       enableHiding: false,
     },
     {
-      accessorKey: 'name',
+      accessorKey: 'workerId',
       header: 'Name',
     },
     {
@@ -109,7 +110,7 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
       header: 'Category',
     },
     {
-      accessorKey: 'branch',
+      accessorKey: 'branchId',
       header: 'Branch',
       filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
@@ -140,7 +141,7 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
         header: () => <div className="text-right">Gross Profit</div>,
         cell: ({ row }) => {
             const grossProfit = row.getValue('grossProfit') as number | undefined;
-            if (grossProfit === undefined || grossProfit === null) return null;
+            if (grossProfit === undefined || grossProfit === null) return <div className="text-right text-muted-foreground">-</div>;
             const formatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(grossProfit);
             return <div className="text-right text-muted-foreground">{formatted}</div>;
         },
@@ -181,7 +182,7 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
   const groupedData = React.useMemo(() => {
     const sortedRows = table.getRowModel().rows; // Use sorted rows
     return sortedRows.reduce((acc, row) => {
-      const date = format(new Date(row.original.date), 'yyyy-MM-dd');
+      const date = format(new Date(row.original.createdAt as Date), 'yyyy-MM-dd');
       if (!acc[date]) {
         acc[date] = [];
       }
@@ -209,8 +210,8 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
   ];
 
   const branches = [
-    { value: 'Nidagundi', label: 'Nidagundi' },
-    { value: 'Basavana Bagewadi', label: 'Basavana Bagewadi' },
+    { value: 'nidagundi', label: 'Nidagundi' },
+    { value: 'basavana_bagewadi', label: 'Basavana Bagewadi' },
   ];
   const names = [
       { value: 'M.R Bijapur', label: 'M.R Bijapur' },
@@ -239,16 +240,16 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
                   options={transactionTypes}
               />
               )}
-              {table.getColumn("branch") && (
+              {table.getColumn("branchId") && (
               <DataTableFacetedFilter
-                  column={table.getColumn("branch")}
+                  column={table.getColumn("branchId")}
                   title="Branch"
                   options={branches}
               />
               )}
-              {table.getColumn("name") && (
+              {table.getColumn("workerId") && (
               <DataTableFacetedFilter
-                  column={table.getColumn("name")}
+                  column={table.getColumn("workerId")}
                   title="Name"
                   options={names}
               />

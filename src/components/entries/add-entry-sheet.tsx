@@ -1,3 +1,4 @@
+
 'use client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +28,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '../ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { collection, Timestamp, doc } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { startOfTomorrow } from 'date-fns';
 
@@ -36,16 +37,17 @@ const formSchema = z.object({
     required_error: 'A date is required.',
   }).max(startOfTomorrow(), { message: "Date cannot be in the future." }),
   type: z.enum(['sale', 'purchase', 'expense'], { required_error: 'Type is required.' }),
-  name: z.string({ required_error: 'Name is required.' }),
+  workerId: z.string({ required_error: 'Name is required.' }),
   amount: z.coerce.number().min(0.01, 'Amount is required.'),
   category: z.string().min(1, 'Category is required.'),
   description: z.string().min(1, 'Description is required.'),
+  branchId: z.string({ required_error: 'Branch is required.' }),
 });
 
 export function AddEntrySheet() {
   const [open, setOpen] = useState(false);
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,25 +55,26 @@ export function AddEntrySheet() {
       date: new Date(),
       amount: 0,
       type: undefined,
-      name: undefined,
+      workerId: undefined,
       category: '',
       description: '',
     },
   });
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    if (!firestore) {
+    if (!firestore || !user) {
       toast({ title: 'Error', description: 'Firestore not available.', variant: 'destructive' });
       return;
     }
 
-    // Use a unique ID for each transaction instead of overwriting by date
     const newDocRef = doc(collection(firestore, 'transactions'));
 
     const transactionData = {
       ...values,
       id: newDocRef.id,
-      date: Timestamp.fromDate(values.date).toDate().toISOString(),
+      createdAt: values.date,
+      createdBy: user.uid,
+      syncStatus: 'synced' as const,
     };
 
     setDocumentNonBlocking(newDocRef, transactionData, {});
@@ -85,7 +88,7 @@ export function AddEntrySheet() {
       date: new Date(),
       amount: 0,
       type: undefined,
-      name: undefined,
+      workerId: undefined,
       category: '',
       description: '',
     });
@@ -167,7 +170,7 @@ export function AddEntrySheet() {
             />
              <FormField
               control={form.control}
-              name="name"
+              name="workerId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Name</FormLabel>
@@ -181,6 +184,27 @@ export function AddEntrySheet() {
                       <SelectItem value="M.R Bijapur">M.R Bijapur</SelectItem>
                       <SelectItem value="Jaggu">Jaggu</SelectItem>
                       <SelectItem value="Pavitra">Pavitra</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="branchId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Branch</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a branch" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        <SelectItem value="nidagundi">Nidagundi</SelectItem>
+                        <SelectItem value="basavana_bagewadi">Basavana Bagewadi</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

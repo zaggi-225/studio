@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -22,7 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTableFacetedFilter } from '@/components/entries/data-table-faceted-filter';
 import { useCollection, useFirebase, useMemoFirebase } from '@/firebase';
-import { collection, query, where, getDocs, setDoc, doc, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, writeBatch } from 'firebase/firestore';
 import type { SalesEntry, Transaction } from '@/lib/types';
 import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
@@ -31,7 +32,6 @@ import { Calendar as CalendarIcon, RefreshCw } from 'lucide-react';
 import { Calendar } from '../ui/calendar';
 import type { DateRange } from 'react-day-picker';
 import { useToast } from '@/hooks/use-toast';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 
 const columns: ColumnDef<SalesEntry>[] = [
@@ -64,7 +64,7 @@ const columns: ColumnDef<SalesEntry>[] = [
     },
   },
   {
-    accessorKey: 'branch',
+    accessorKey: 'branchId',
     header: '🏬 Branch',
     filterFn: (row, id, value) => {
         return value.includes(row.getValue(id));
@@ -95,8 +95,8 @@ const SIZES = [
 ];
 
 const BRANCHES = [
-  { value: 'Nidagundi', label: 'Nidagundi' },
-  { value: 'Basavana Bagewadi', label: 'Basavana Bagewadi' },
+  { value: 'nidagundi', label: 'Nidagundi' },
+  { value: 'basavana_bagewadi', label: 'Basavana Bagewadi' },
 ];
 
 export function SalesEntriesTable() {
@@ -185,8 +185,8 @@ export function SalesEntriesTable() {
     try {
         const q = query(
             collection(firestore, 'sales_entries'),
-            where('date', '>=', startOfToday),
-            where('date', '<=', endOfToday)
+            where('createdAt', '>=', startOfToday),
+            where('createdAt', '<=', endOfToday)
         );
         const querySnapshot = await getDocs(q);
         const todaysEntries = querySnapshot.docs.map(doc => ({...doc.data(), id: doc.id} as SalesEntry));
@@ -199,8 +199,8 @@ export function SalesEntriesTable() {
 
         // Group by date, branch, and name
         const groupedSales = todaysEntries.reduce((acc, entry) => {
-            const dateStr = format( (entry.date as any).toDate(), 'yyyy-MM-dd');
-            const key = `${dateStr}|${entry.branch}|${entry.name}`;
+            const dateStr = format( (entry.createdAt as any).toDate(), 'yyyy-MM-dd');
+            const key = `${dateStr}|${entry.branchId}|${entry.workerId}`;
             if (!acc[key]) {
                 acc[key] = [];
             }
@@ -213,7 +213,7 @@ export function SalesEntriesTable() {
 
         for (const key in groupedSales) {
             const entries = groupedSales[key];
-            const [dateStr, branch, name] = key.split('|');
+            const [dateStr, branchId, workerId] = key.split('|');
             
             const totalAmount = entries.reduce((sum, entry) => sum + entry.amount, 0);
             const totalPieces = entries.reduce((sum, entry) => sum + entry.pieces, 0);
@@ -228,17 +228,18 @@ export function SalesEntriesTable() {
                 .join(', ');
 
             const dailySummary: Omit<Transaction, 'id'> = {
-                date: Timestamp.fromDate(new Date(dateStr)).toDate().toISOString(),
+                createdAt: new Date(dateStr),
                 type: 'sale',
                 description: description,
                 category: 'Customer',
                 amount: totalAmount,
-                name: name,
-                branch: branch,
+                workerId: workerId,
+                branchId: branchId,
                 pieces: totalPieces,
+                syncStatus: 'synced',
             };
             
-            const docId = `${dateStr}-${branch.replace(/\s+/g, '_')}-${name.replace(/\s+/g, '_')}`;
+            const docId = `${dateStr}-${branchId.replace(/\s+/g, '_')}-${workerId.replace(/\s+/g, '_')}`;
             const docRef = doc(firestore, 'transactions', docId);
 
             batch.set(docRef, dailySummary, { merge: true });
@@ -281,9 +282,9 @@ export function SalesEntriesTable() {
       <CardContent className="space-y-4">
         <div className="flex flex-col sm:flex-row items-center gap-2 flex-wrap">
             <div className="flex gap-2 flex-wrap">
-              {table.getColumn("branch") && (
+              {table.getColumn("branchId") && (
                   <DataTableFacetedFilter
-                      column={table.getColumn("branch")}
+                      column={table.getColumn("branchId")}
                       title="Branch"
                       options={BRANCHES}
                   />
