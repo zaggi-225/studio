@@ -70,6 +70,21 @@ const columns: ColumnDef<SalesEntry>[] = [
         return value.includes(row.getValue(id));
     }
   },
+  {
+    accessorKey: 'costPerSheet',
+    header: 'Cost/Sheet',
+    enableHiding: true,
+  },
+  {
+    accessorKey: 'grossProfit',
+    header: 'Gross Profit',
+    enableHiding: true,
+  },
+  {
+    accessorKey: 'netProfit',
+    header: 'Net Profit',
+    enableHiding: true,
+  }
 ];
 
 const SIZES = [
@@ -93,7 +108,11 @@ export function SalesEntriesTable() {
   const { data: salesEntries, isLoading } = useCollection<SalesEntry>(salesEntriesRef);
 
   const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({});
+  const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
+      costPerSheet: false,
+      grossProfit: false,
+      netProfit: false,
+  });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true },

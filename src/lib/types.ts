@@ -8,6 +8,9 @@ export type Transaction = {
   name?: string;
   branch?: string;
   pieces?: number;
+  costPerSheet?: number;
+  grossProfit?: number;
+  netProfit?: number;
 };
 
 export type SalesEntry = {
@@ -20,6 +23,9 @@ export type SalesEntry = {
   name: string;
   createdBy: string;
   createdAt: any; // Firestore ServerTimestamp
+  costPerSheet?: number;
+  grossProfit?: number;
+  netProfit?: number;
 }
 
 export type Purchase = {

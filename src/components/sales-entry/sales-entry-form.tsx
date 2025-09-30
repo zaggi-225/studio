@@ -83,7 +83,18 @@ export function SalesEntryForm() {
         setIsLoading(false);
         return;
     }
-
+    
+    // --- Profit Calculation ---
+    // This section is intended to be handled by a backend Cloud Function for reliability.
+    // The function would trigger on create of a new 'sales_entries' document,
+    // perform the lookups and calculations, and then update the document with profit fields.
+    //
+    // Example backend logic:
+    // 1. Fetch avgCostPerKg for the current month from purchase aggregates.
+    // 2. Fetch sheetWeight for the given size from the latest purchase record.
+    // 3. Fetch total monthly overhead from expense aggregates.
+    // 4. Calculate costPerSheet, grossProfit, and netProfit.
+    
     const entryData = {
         date: values.date,
         size: values.size === 'other' ? values.otherSize : values.size,
@@ -93,6 +104,10 @@ export function SalesEntryForm() {
         name: values.name,
         createdBy: user.uid,
         createdAt: serverTimestamp(),
+        // Profit fields will be added by the backend function
+        costPerSheet: null,
+        grossProfit: null,
+        netProfit: null,
     };
 
     try {

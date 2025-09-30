@@ -136,6 +136,16 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
       },
     },
     {
+        accessorKey: 'grossProfit',
+        header: () => <div className="text-right">Gross Profit</div>,
+        cell: ({ row }) => {
+            const grossProfit = row.getValue('grossProfit') as number | undefined;
+            if (grossProfit === undefined || grossProfit === null) return null;
+            const formatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(grossProfit);
+            return <div className="text-right text-muted-foreground">{formatted}</div>;
+        },
+    },
+    {
       id: 'actions',
       cell: ({ row }) => <DataTableRowActions row={row} />,
     },
@@ -152,6 +162,9 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
     initialState: {
       pagination: {
         pageSize: 30,
+      },
+      columnVisibility: {
+        grossProfit: false,
       }
     },
     onSortingChange: setSorting,
@@ -184,6 +197,10 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
   const totalPieces = React.useMemo(() => {
     return table.getFilteredRowModel().rows.reduce((total, row) => total + (row.original.pieces || 0), 0);
   }, [table.getFilteredRowModel().rows]);
+  
+  const totalGrossProfit = React.useMemo(() => {
+    return table.getFilteredRowModel().rows.reduce((total, row) => total + (row.original.grossProfit || 0), 0);
+    }, [table.getFilteredRowModel().rows]);
 
   const transactionTypes = [
     { value: 'sale', label: 'Sale' },
@@ -286,6 +303,12 @@ export function CollapsibleDataTable({ data }: { data: Transaction[] }) {
                             currency: 'INR',
                         }).format(totalAmount)}
                     </TableCell>
+                     <TableCell className="text-right font-bold whitespace-nowrap">
+                        {new Intl.NumberFormat('en-IN', {
+                            style: 'currency',
+                            currency: 'INR',
+                        }).format(totalGrossProfit)}
+                    </TableCell>
                     <TableCell></TableCell>
                 </TableRow>
             </TableFooter>
@@ -335,6 +358,7 @@ const DateGroupRow = ({
   const transactions = rows.map(r => r.original);
   const groupTotalAmount = transactions.reduce((sum, t) => sum + t.amount, 0);
   const groupTotalPieces = transactions.reduce((sum, t) => sum + (t.pieces || 0), 0);
+  const groupGrossProfit = transactions.reduce((sum, t) => sum + (t.grossProfit || 0), 0);
 
   return (
     <Collapsible asChild open={isOpen} onOpenChange={setIsOpen}>
@@ -355,6 +379,9 @@ const DateGroupRow = ({
           <TableCell className="text-right whitespace-nowrap px-2 md:px-4">
             {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(groupTotalAmount)}
           </TableCell>
+          <TableCell className="text-right whitespace-nowrap px-2 md:px-4">
+            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(groupGrossProfit)}
+          </TableCell>
           <TableCell className="px-2 md:px-4"></TableCell>
         </TableRow>
         {rows.map((row: any) => (
@@ -373,5 +400,3 @@ const DateGroupRow = ({
     </Collapsible>
   );
 };
-
-    
